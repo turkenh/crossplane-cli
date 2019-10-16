@@ -2,20 +2,15 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"path/filepath"
 	"time"
 
-	"k8s.io/apimachinery/pkg/runtime/schema"
+	"github.com/crossplaneio/crossplane-cli/pkg/trace"
 
 	"k8s.io/client-go/discovery/cached/disk"
 
 	"k8s.io/client-go/restmapper"
-
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/tools/clientcmd"
@@ -23,9 +18,12 @@ import (
 )
 
 func main() {
-	resource := "mysqlinstances"
+	//kind := "KubernetesCluster"
+	//resourceName := "wordpress-cluster-64edc6f9-7c70-43ed-bd1d-1c26e09e0a45"
+	kind := "mysqlinstance"
 	resourceName := "wordpress-mysql-64edc6f9-7c70-43ed-bd1d-1c26e09e0a45"
-	log.Println("Tracing", resource, resourceName)
+	namespace := "app-project1-dev"
+	log.Println("Tracing", kind, resourceName)
 
 	var kubeconfig *string
 	if home := homedir.HomeDir(); home != "" {
@@ -34,8 +32,6 @@ func main() {
 		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
 	}
 	flag.Parse()
-
-	namespace := "app-project1-dev"
 
 	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
 	if err != nil {
@@ -56,27 +52,13 @@ func main() {
 
 	mapper := restmapper.NewDeferredDiscoveryRESTMapper(discoveryClient)
 	my_restmapper := restmapper.NewShortcutExpander(mapper, discoveryClient)
-	res, err := my_restmapper.ResourceFor(schema.GroupVersionResource{"", "", resource})
+
+	g := trace.NewGraph(client, my_restmapper)
+
+	_, err = g.BuildGraph(resourceName, namespace, kind)
 	if err != nil {
 		panic(err)
 	}
-
-	fmt.Printf("Listing %q in namespace %q:\n", resource, namespace)
-	d, err := client.Resource(res).Namespace(namespace).Get(resourceName, metav1.GetOptions{})
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Printf(" * %s \n", d.GetName())
-	ownerRef, found, err := unstructured.NestedSlice(d.Object, "metadata", "ownerReferences")
-	if err != nil || !found {
-		fmt.Printf("ownerref not found for deployment %s: error=%s", d.GetName(), err)
-	}
-
-	owner, found, err := unstructured.NestedString(ownerRef[0].(map[string]interface{}), "name")
-	if err != nil || !found {
-		fmt.Printf("owner not found for deployment %s: error=%s", d.GetName(), err)
-	}
-	fmt.Println("owner", owner)
+	// TODO(hasan): print
 
 }
