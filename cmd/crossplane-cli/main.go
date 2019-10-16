@@ -5,10 +5,15 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
-
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"time"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	"k8s.io/client-go/discovery/cached/disk"
+
+	"k8s.io/client-go/restmapper"
+
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -41,32 +46,37 @@ func main() {
 		panic(err)
 	}
 
-	res := schema.GroupVersionResource{Group: "database.crossplane.io", Version: "v1alpha1", Resource: resource}
-	fmt.Printf("Listing things in namespace %q:\n", namespace)
-	list, err := client.Resource(res).Namespace(namespace).List(metav1.ListOptions{})
+	discoveryCacheDir := filepath.Join("./.kube", "cache", "discovery")
+	httpCacheDir := filepath.Join("./.kube", "http-cache")
+	discoveryClient, err := disk.NewCachedDiscoveryClientForConfig(
+		config,
+		discoveryCacheDir,
+		httpCacheDir,
+		time.Duration(10*time.Minute))
+
+	mapper := restmapper.NewDeferredDiscoveryRESTMapper(discoveryClient)
+	my_restmapper := restmapper.NewShortcutExpander(mapper, discoveryClient)
+	res, err := my_restmapper.ResourceFor(schema.GroupVersionResource{"", "", resource})
 	if err != nil {
 		panic(err)
 	}
-	for _, d := range list.Items {
-		//replicas, found, err := unstructured.NestedInt64(d.Object, "spec", "replicas")
-		//if err != nil || !found {
-		//	fmt.Printf("Replicas not found for deployment %s: error=%s", d.GetName(), err)
-		//	continue
-		//}
-		fmt.Printf(" * %s \n", d.GetName())
-		ownerRef, found, err := unstructured.NestedSlice(d.Object, "metadata", "ownerReferences")
-		if err != nil || !found {
-			fmt.Printf("ownerref not found for deployment %s: error=%s", d.GetName(), err)
-			continue
-		}
 
-		//v, ok := ownerRef[0].(map[string]interface)
-
-		owner, found, err := unstructured.NestedString(ownerRef[0].(map[string]interface{}), "name")
-		if err != nil || !found {
-			fmt.Printf("owner not found for deployment %s: error=%s", d.GetName(), err)
-			continue
-		}
-		fmt.Println("owner", owner)
+	fmt.Printf("Listing %q in namespace %q:\n", resource, namespace)
+	d, err := client.Resource(res).Namespace(namespace).Get(resourceName, metav1.GetOptions{})
+	if err != nil {
+		panic(err)
 	}
+
+	fmt.Printf(" * %s \n", d.GetName())
+	ownerRef, found, err := unstructured.NestedSlice(d.Object, "metadata", "ownerReferences")
+	if err != nil || !found {
+		fmt.Printf("ownerref not found for deployment %s: error=%s", d.GetName(), err)
+	}
+
+	owner, found, err := unstructured.NestedString(ownerRef[0].(map[string]interface{}), "name")
+	if err != nil || !found {
+		fmt.Printf("owner not found for deployment %s: error=%s", d.GetName(), err)
+	}
+	fmt.Println("owner", owner)
+
 }
