@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/client-go/dynamic"
@@ -18,9 +18,9 @@ import (
 )
 
 func main() {
-	resourceType := "mysqlinstance"
+	resource := "mysqlinstances"
 	resourceName := "wordpress-mysql-64edc6f9-7c70-43ed-bd1d-1c26e09e0a45"
-	log.Println("Tracing", resourceType, resourceName)
+	log.Println("Tracing", resource, resourceName)
 
 	var kubeconfig *string
 	if home := homedir.HomeDir(); home != "" {
@@ -30,7 +30,7 @@ func main() {
 	}
 	flag.Parse()
 
-	namespace := "crossplane-system"
+	namespace := "app-project1-dev"
 
 	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
 	if err != nil {
@@ -41,19 +41,32 @@ func main() {
 		panic(err)
 	}
 
-	deploymentRes := schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}
-
-	fmt.Printf("Listing deployments in namespace %q:\n", apiv1.NamespaceDefault)
-	list, err := client.Resource(deploymentRes).Namespace(namespace).List(metav1.ListOptions{})
+	res := schema.GroupVersionResource{Group: "database.crossplane.io", Version: "v1alpha1", Resource: resource}
+	fmt.Printf("Listing things in namespace %q:\n", namespace)
+	list, err := client.Resource(res).Namespace(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		panic(err)
 	}
 	for _, d := range list.Items {
-		replicas, found, err := unstructured.NestedInt64(d.Object, "spec", "replicas")
+		//replicas, found, err := unstructured.NestedInt64(d.Object, "spec", "replicas")
+		//if err != nil || !found {
+		//	fmt.Printf("Replicas not found for deployment %s: error=%s", d.GetName(), err)
+		//	continue
+		//}
+		fmt.Printf(" * %s \n", d.GetName())
+		ownerRef, found, err := unstructured.NestedSlice(d.Object, "metadata", "ownerReferences")
 		if err != nil || !found {
-			fmt.Printf("Replicas not found for deployment %s: error=%s", d.GetName(), err)
+			fmt.Printf("ownerref not found for deployment %s: error=%s", d.GetName(), err)
 			continue
 		}
-		fmt.Printf(" * %s (%d replicas)\n", d.GetName(), replicas)
+
+		//v, ok := ownerRef[0].(map[string]interface)
+
+		owner, found, err := unstructured.NestedString(ownerRef[0].(map[string]interface{}), "name")
+		if err != nil || !found {
+			fmt.Printf("owner not found for deployment %s: error=%s", d.GetName(), err)
+			continue
+		}
+		fmt.Println("owner", owner)
 	}
 }
