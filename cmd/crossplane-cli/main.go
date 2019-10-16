@@ -1,18 +1,20 @@
 package main
 
 import (
-	"context"
+	"flag"
 	"fmt"
 	"log"
-	"os"
+	"path/filepath"
 
-	"github.com/crossplaneio/crossplane/apis"
-	computev1alpha1 "github.com/crossplaneio/crossplane/apis/compute/v1alpha1"
-	gcpapis "github.com/crossplaneio/stack-gcp/gcp/apis"
-	gcpcomputev1alpha2 "github.com/crossplaneio/stack-gcp/gcp/apis/compute/v1alpha2"
-	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	apiv1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/homedir"
 )
 
 func main() {
@@ -20,42 +22,38 @@ func main() {
 	resourceName := "wordpress-mysql-64edc6f9-7c70-43ed-bd1d-1c26e09e0a45"
 	log.Println("Tracing", resourceType, resourceName)
 
-	// Init controller runtime client
-	scheme := runtime.NewScheme()
-	if err := addToScheme(scheme); err != nil {
-		log.Fatalln("Failed to add crossplane apis to scheme:", err)
+	var kubeconfig *string
+	if home := homedir.HomeDir(); home != "" {
+		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
+	} else {
+		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
 	}
-	cl, err := client.New(config.GetConfigOrDie(), client.Options{Scheme: scheme})
+	flag.Parse()
+
+	namespace := "crossplane-system"
+
+	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
 	if err != nil {
-		log.Fatalln("Failed to create client:", err)
+		panic(err)
 	}
-
-	k8sList := &computev1alpha1.KubernetesClusterList{}
-	gkeList := &gcpcomputev1alpha2.GKEClusterList{}
-
-	err = cl.List(context.Background(), k8sList, client.InNamespace("app-project1-dev"))
+	client, err := dynamic.NewForConfig(config)
 	if err != nil {
-		fmt.Printf("failed to list k8s clusters: %v\n", err)
-		os.Exit(1)
+		panic(err)
 	}
-	fmt.Println(k8sList.Items[0].Spec.ResourceReference.Kind)
 
-	err = cl.List(context.Background(), gkeList, client.InNamespace("gcp"))
+	deploymentRes := schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}
+
+	fmt.Printf("Listing deployments in namespace %q:\n", apiv1.NamespaceDefault)
+	list, err := client.Resource(deploymentRes).Namespace(namespace).List(metav1.ListOptions{})
 	if err != nil {
-		fmt.Printf("failed to list gke clusters: %v\n", err)
-		os.Exit(1)
+		panic(err)
 	}
-	fmt.Println(gkeList.Items[0].ObjectMeta.Name)
-}
-
-// addToScheme adds all resources to the runtime scheme.
-func addToScheme(scheme *runtime.Scheme) error {
-	if err := apis.AddToScheme(scheme); err != nil {
-		return err
+	for _, d := range list.Items {
+		replicas, found, err := unstructured.NestedInt64(d.Object, "spec", "replicas")
+		if err != nil || !found {
+			fmt.Printf("Replicas not found for deployment %s: error=%s", d.GetName(), err)
+			continue
+		}
+		fmt.Printf(" * %s (%d replicas)\n", d.GetName(), replicas)
 	}
-	if err := gcpapis.AddToScheme(scheme); err != nil {
-		return err
-	}
-
-	return nil
 }
