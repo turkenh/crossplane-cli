@@ -3,15 +3,14 @@ package crossplane
 import (
 	"fmt"
 
-	runtimev1alpha1 "github.com/crossplaneio/crossplane-runtime/apis/core/v1alpha1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 var (
-	detailsTemplate = `%v:
+	detailsTemplate = `%v
 
 Status: %v
-Status Conditions: 
+Status Conditions
 TYPE	STATUS	LAST-TRANSITION-TIME	REASON	MESSAGE	
 `
 )
@@ -31,14 +30,25 @@ func (o *Claim) GetStatus() string {
 
 func (o *Claim) GetDetails() string {
 	d := fmt.Sprintf(detailsTemplate, o.U.GetKind(), o.GetStatus())
-	s, f, err := unstructured.NestedFieldNoCopy(o.U.Object, "status")
+	cs, f, err := unstructured.NestedSlice(o.U.Object, "status", "conditions")
 	if err != nil || !f {
 		// failed to get conditions
 		return d
 	}
-	rcs := s.(runtimev1alpha1.ResourceClaimStatus)
-	for _, c := range rcs.ConditionedStatus.Conditions {
-		d = d + fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t", c.Type, c.Status, c.LastTransitionTime, c.Reason, c.Message)
+	for _, c := range cs {
+		cMap := c.(map[string]interface{})
+		if cMap == nil {
+			fmt.Errorf("something wrong!!!")
+			continue
+		}
+		getNestedString(cMap, "type")
+
+		d = d + fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t\n",
+			getNestedString(cMap, "type"),
+			getNestedString(cMap, "status"),
+			getNestedString(cMap, "lastTransitionTime"),
+			getNestedString(cMap, "reason"),
+			getNestedString(cMap, "message"))
 	}
 	return d
 }

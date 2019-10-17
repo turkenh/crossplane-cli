@@ -151,7 +151,7 @@ func getObjRef(obj *unstructured.Unstructured, path []string) (*unstructured.Uns
 	if !aFound && !kFound && !nFound && !nsFound {
 		return nil, errors.New("Failed to find a reference!")
 	}
-	fmt.Println("Related to resource  ---> ", a, k, n, ns)
+
 	u := &unstructured.Unstructured{Object: map[string]interface{}{}}
 
 	u.SetAPIVersion(a)

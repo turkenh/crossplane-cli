@@ -1,6 +1,8 @@
 package crossplane
 
-import "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+import (
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+)
 
 type NonPortableClass struct {
 	K8SObject

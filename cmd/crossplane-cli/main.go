@@ -2,8 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"log"
 	"path/filepath"
 	"time"
 
@@ -26,7 +24,6 @@ func main() {
 	//kind := "GKECluster"
 	//resourceName := "kubernetescluster-5c843147-069e-4a94-81d3-188c9e0fbd9c"
 	namespace := "app-project1-dev"
-	log.Println("Tracing", kind, resourceName)
 
 	var kubeconfig *string
 	if home := homedir.HomeDir(); home != "" {
@@ -60,7 +57,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("-------")
 	p := trace.NewSimplePrinter()
 	p.Print(objs)
 	if err != nil {

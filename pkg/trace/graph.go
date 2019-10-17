@@ -52,7 +52,6 @@ func (g *Graph) BuildGraph(name, namespace, kind string) (*Node, []*unstructured
 	queue.PushBack(root)
 
 	for queue.Len() > 0 {
-		fmt.Println("--")
 		qnode := queue.Front()
 		node := qnode.Value.(*Node)
 		err = g.findRelated(node)
@@ -78,12 +77,10 @@ func (g *Graph) BuildGraph(name, namespace, kind string) (*Node, []*unstructured
 
 func (g *Graph) fetchObj(n *Node) error {
 	if n.U.GetUID() != "" {
-		fmt.Printf("Object %s already fetched", getObjId(n.U))
+		return nil
 	}
 	u := n.U
-	fmt.Printf("Getting %q %q in namespace %q:\n", u.GetKind(), u.GetName(), u.GetNamespace())
-
-	res, err := g.restMapper.ResourceFor(schema.GroupVersionResource{u.GroupVersionKind().Group, u.GroupVersionKind().Version, u.GetKind()})
+	res, err := g.restMapper.ResourceFor(schema.GroupVersionResource{Group: u.GroupVersionKind().Group, Version: u.GroupVersionKind().Version, Resource: u.GetKind()})
 	if err != nil {
 		panic(err)
 	}
@@ -93,7 +90,6 @@ func (g *Graph) fetchObj(n *Node) error {
 		panic(err)
 	}
 	n.U = u
-	fmt.Printf("Successfully fetched object %s \n", u.GetName())
 	return nil
 }
 
