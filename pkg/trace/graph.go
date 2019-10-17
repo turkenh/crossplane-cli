@@ -145,9 +145,15 @@ func (g *Graph) getRelated(n *Node) error {
 		// TODO(ht): Special case for claim -> portableClass, currently apiversion, kind and ns missing
 		//  hence we need to manually fill them. This limitation will be removed with
 		//  https://github.com/crossplaneio/crossplane/blob/master/design/one-pager-simple-class-selection.md
-		u.SetAPIVersion(obj.GetAPIVersion())
-		u.SetKind(objKind + "Class")
-		u.SetNamespace(obj.GetNamespace())
+		if u.GetAPIVersion() == "" {
+			u.SetAPIVersion(obj.GetAPIVersion())
+		}
+		if u.GetKind() == "" {
+			u.SetKind(objKind + "Class")
+		}
+		if u.GetNamespace() == "" {
+			u.SetNamespace(obj.GetNamespace())
+		}
 
 		n = g.addNodeIfNotExist(u)
 		related = append(related, n)

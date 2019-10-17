@@ -12,3 +12,7 @@ type Node struct {
 type GraphBuilder interface {
 	BuildGraph(name, namespace, kind string) (*Node, error)
 }
+
+type Printer interface {
+	Print([]*unstructured.Unstructured) error
+}

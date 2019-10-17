@@ -57,15 +57,15 @@ func main() {
 	my_restmapper := restmapper.NewShortcutExpander(mapper, discoveryClient)
 
 	g := trace.NewGraph(client, my_restmapper)
-
 	_, objs, err := g.BuildGraph(resourceName, namespace, kind)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println("-------")
-	for _, o := range objs {
-		fmt.Println("*", o.GetKind(), o.GetName(), o.GetNamespace())
+	p := trace.NewSimplePrinter()
+	p.Print(objs)
+	if err != nil {
+		panic(err)
 	}
-	// TODO(hasan): print
 
 }
