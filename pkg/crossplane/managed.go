@@ -21,6 +21,7 @@ func (o *Managed) GetAge() string {
 }
 
 func (o *Managed) GetDetails() string {
+	// TODO(hasan): consider using additional printer columns from crd
 	return getResourceDetails(o.u)
 }
 

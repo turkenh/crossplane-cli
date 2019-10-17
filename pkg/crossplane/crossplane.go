@@ -24,6 +24,9 @@ var (
 	kindsProvider = []string{
 		"Provider",
 	}
+	kindsApplication = []string{
+		"KubernetesApplication",
+	}
 )
 
 type Object interface {
@@ -45,6 +48,8 @@ func ObjectFromUnstructured(u *unstructured.Unstructured) Object {
 		return NewNonPortableClass(u)
 	} else if isProvider(objKind) {
 		return NewProvider(u)
+	} else if isApplication(objKind) {
+		return NewApplication(u)
 	}
 	//fmt.Fprintln(os.Stderr, "!!!!!!Object is not a known crossplane object -> group: ", u.GroupVersionKind().Group, " kind: ", objKind)
 	return nil

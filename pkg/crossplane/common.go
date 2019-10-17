@@ -10,11 +10,12 @@ import (
 )
 
 var (
-	resourceRefPath      = []string{"spec", "resourceRef"}
-	claimRefPath         = []string{"spec", "claimRef"}
-	classRefPath         = []string{"classRef"}
-	resourceClassRefPath = []string{"spec", "classRef"}
-	providerRefPath      = []string{"specTemplate", "providerRef"}
+	applicationClusterRefPath = []string{"status", "clusterRef"}
+	resourceRefPath           = []string{"spec", "resourceRef"}
+	claimRefPath              = []string{"spec", "claimRef"}
+	classRefPath              = []string{"classRef"}
+	resourceClassRefPath      = []string{"spec", "classRef"}
+	providerRefPath           = []string{"specTemplate", "providerRef"}
 
 	resourceDetailsTemplate = `%v
 
@@ -118,11 +119,25 @@ func isPortableClass(kind string) bool {
 func isProvider(kind string) bool {
 	return stringInSlice(kind, kindsProvider)
 }
+func isApplication(kind string) bool {
+	return stringInSlice(kind, kindsApplication)
+}
 
 func getNestedString(obj map[string]interface{}, fields ...string) string {
 	val, found, err := unstructured.NestedString(obj, fields...)
-	if !found || err != nil {
+	if err != nil {
 		return "<unknown>"
+	}
+	if !found {
+		return " "
+	}
+	return val
+}
+
+func getNestedInt64(obj map[string]interface{}, fields ...string) int64 {
+	val, found, err := unstructured.NestedInt64(obj, fields...)
+	if !found || err != nil {
+		return -1
 	}
 	return val
 }
