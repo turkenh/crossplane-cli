@@ -5,12 +5,6 @@ import (
 )
 
 var (
-	resourceRefPath      = []string{"spec", "resourceRef"}
-	claimRefPath         = []string{"spec", "claimRef"}
-	classRefPath         = []string{"classRef"}
-	resourceClassRefPath = []string{"spec", "classRef"}
-	providerRefPath      = []string{"specTemplate", "providerRef"}
-
 	kindsClaim = []string{
 		"MySQLInstance",
 		"KubernetesCluster",
@@ -49,34 +43,4 @@ func ObjectFromUnstructured(u *unstructured.Unstructured) Object {
 	}
 	//fmt.Fprintln(os.Stderr, "!!!!!!Object is not a known crossplane object -> group: ", u.GroupVersionKind().Group, " kind: ", objKind)
 	return nil
-}
-
-func stringInSlice(a string, list []string) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
-	}
-	return false
-}
-
-func isClaim(kind string) bool {
-	return stringInSlice(kind, kindsClaim)
-}
-func isManaged(kind string) bool {
-	return stringInSlice(kind, kindsManaged)
-}
-func isNonPortableClass(kind string) bool {
-	return stringInSlice(kind, kindsNonPortableClass)
-}
-func isPortableClass(kind string) bool {
-	return stringInSlice(kind, kindsPortableClass)
-}
-
-func getNestedString(obj map[string]interface{}, fields ...string) string {
-	val, found, err := unstructured.NestedString(obj, fields...)
-	if !found || err != nil {
-		return "<unknown>"
-	}
-	return val
 }

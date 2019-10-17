@@ -29,10 +29,10 @@ func NewGraph(client dynamic.Interface, restMapper meta.RESTMapper) *Graph {
 	}
 }
 
-func (g *Graph) BuildGraph(name, namespace, kind string) (*Node, []*unstructured.Unstructured, error) {
+func (g *Graph) BuildGraph(name, namespace, kind string) (root *Node, traversed []*unstructured.Unstructured, err error) {
 	queue := list.New()
 
-	traversedObj := make([]*unstructured.Unstructured, 0)
+	traversed = make([]*unstructured.Unstructured, 0)
 
 	u := &unstructured.Unstructured{Object: map[string]interface{}{}}
 
@@ -41,14 +41,14 @@ func (g *Graph) BuildGraph(name, namespace, kind string) (*Node, []*unstructured
 	u.SetName(name)
 	u.SetNamespace(namespace)
 
-	root := g.addNodeIfNotExist(u)
+	root = g.addNodeIfNotExist(u)
 
-	err := g.fetchObj(root)
+	err = g.fetchObj(root)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	traversedObj = append(traversedObj, root.U)
+	traversed = append(traversed, root.U)
 	queue.PushBack(root)
 
 	for queue.Len() > 0 {
@@ -65,14 +65,14 @@ func (g *Graph) BuildGraph(name, namespace, kind string) (*Node, []*unstructured
 				if err != nil {
 					return nil, nil, err
 				}
-				traversedObj = append(traversedObj, n.U)
+				traversed = append(traversed, n.U)
 				queue.PushBack(n)
 			}
 		}
 		queue.Remove(qnode)
 	}
 
-	return root, traversedObj, nil
+	return
 }
 
 func (g *Graph) fetchObj(n *Node) error {
