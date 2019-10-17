@@ -35,7 +35,6 @@ func main() {
 		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
 	}
 	flag.Parse()
-
 	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
 	if err != nil {
 		panic(err)
@@ -51,12 +50,12 @@ func main() {
 		config,
 		discoveryCacheDir,
 		httpCacheDir,
-		time.Duration(10*time.Minute))
+		10*time.Minute)
 
 	mapper := restmapper.NewDeferredDiscoveryRESTMapper(discoveryClient)
-	my_restmapper := restmapper.NewShortcutExpander(mapper, discoveryClient)
+	rMapper := restmapper.NewShortcutExpander(mapper, discoveryClient)
 
-	g := trace.NewGraph(client, my_restmapper)
+	g := trace.NewGraph(client, rMapper)
 	_, objs, err := g.BuildGraph(resourceName, namespace, kind)
 	if err != nil {
 		panic(err)

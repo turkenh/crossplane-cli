@@ -5,6 +5,10 @@ import (
 	"os"
 	"text/tabwriter"
 
+	"github.com/crossplaneio/crossplane-cli/pkg/trace/crossplane"
+
+	"github.com/fatih/color"
+
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -25,16 +29,66 @@ func NewSimplePrinter() *SimplePrinter {
 }
 
 func (p *SimplePrinter) Print(objs []*unstructured.Unstructured) error {
-	_, err := fmt.Fprintln(p.tabWriter, "KIND\tNAME\tNAMESPACE\t")
+	err := p.printOverview(objs)
+	if err != nil {
+		return err
+	}
+	err = p.printDetails(objs)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func (p *SimplePrinter) printOverview(objs []*unstructured.Unstructured) error {
+	titleF := color.New(color.Bold).Add(color.Underline)
+	_, err := titleF.Println("OVERVIEW")
+	if err != nil {
+		return err
+	}
+	fmt.Fprintln(p.tabWriter, "")
+
+	_, err = fmt.Fprintln(p.tabWriter, "KIND\tNAME\tNAMESPACE\tSTATUS\tAGE\t")
 	if err != nil {
 		return err
 	}
 	for _, o := range objs {
-		_, err = fmt.Fprintf(p.tabWriter, "%v\t%v\t%v\t\n", o.GetKind(), o.GetName(), o.GetNamespace())
+		c := crossplane.ResourceFromObj(o)
+		// Skip unknown objects for now
+		if c == nil {
+			continue
+		}
+		_, err = fmt.Fprintf(p.tabWriter, "%v\t%v\t%v\t%v\t%v\t\n", o.GetKind(), o.GetName(), o.GetNamespace(), c.GetStatus(), c.GetAge())
 		if err != nil {
 			return err
 		}
 	}
+	fmt.Fprintln(p.tabWriter, "")
+	err = p.tabWriter.Flush()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func (p *SimplePrinter) printDetails(objs []*unstructured.Unstructured) error {
+	titleF := color.New(color.Bold).Add(color.Underline)
+	_, err := titleF.Println("DETAILS")
+	if err != nil {
+		return err
+	}
+	fmt.Fprintln(p.tabWriter, "")
+
+	for _, o := range objs {
+		c := crossplane.ResourceFromObj(o)
+		// Skip unknown objects for now
+		if c == nil {
+			continue
+		}
+		_, err = fmt.Fprintf(p.tabWriter, c.GetDetails())
+		if err != nil {
+			return err
+		}
+	}
+	fmt.Fprintln(p.tabWriter, "")
 	err = p.tabWriter.Flush()
 	if err != nil {
 		return err

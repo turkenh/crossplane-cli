@@ -2,9 +2,10 @@ package trace
 
 import (
 	"container/list"
-	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/crossplaneio/crossplane-cli/pkg/trace/crossplane"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -12,31 +13,6 @@ import (
 	"k8s.io/client-go/dynamic"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
-var (
-	resourceRefPath      = []string{"spec", "resourceRef"}
-	claimRefPath         = []string{"spec", "claimRef"}
-	classRefPath         = []string{"classRef"}
-	resourceClassRefPath = []string{"spec", "classRef"}
-	providerRefPath      = []string{"specTemplate", "providerRef"}
-
-	kindsClaim = []string{
-		"MySQLInstance",
-		"KubernetesCluster",
-	}
-	kindsManaged = []string{
-		"CloudsqlInstance",
-		"GKECluster",
-	}
-	kindsPortableClass = []string{
-		"MySQLInstanceClass",
-		"KubernetesClusterClass",
-	}
-	kindsNonPortableClass = []string{
-		"CloudsqlInstanceClass",
-		"GKEClusterClass",
-	}
 )
 
 type Graph struct {
@@ -79,7 +55,7 @@ func (g *Graph) BuildGraph(name, namespace, kind string) (*Node, []*unstructured
 		fmt.Println("--")
 		qnode := queue.Front()
 		node := qnode.Value.(*Node)
-		err = g.getRelated(node)
+		err = g.findRelated(node)
 		if err != nil {
 			panic(err)
 		}
@@ -121,86 +97,17 @@ func (g *Graph) fetchObj(n *Node) error {
 	return nil
 }
 
-func (g *Graph) getRelated(n *Node) error {
-	obj := n.U
-	related := make([]*Node, 0, 4)
+func (g *Graph) findRelated(n *Node) error {
+	n.Related = make([]*Node, 0)
 
-	objKind := obj.GetKind()
-	if stringInSlice(objKind, kindsClaim) {
-		// This is a resource claim
-		// Get resource reference
-		u, err := getObjRef(obj, resourceRefPath)
-		if err != nil {
-			return err
-		}
-
-		n := g.addNodeIfNotExist(u)
-		related = append(related, n)
-
-		// Get class reference
-		u, err = getObjRef(obj, resourceClassRefPath)
-		if err != nil {
-			return err
-		}
-		// TODO(ht): Special case for claim -> portableClass, currently apiversion, kind and ns missing
-		//  hence we need to manually fill them. This limitation will be removed with
-		//  https://github.com/crossplaneio/crossplane/blob/master/design/one-pager-simple-class-selection.md
-		if u.GetAPIVersion() == "" {
-			u.SetAPIVersion(obj.GetAPIVersion())
-		}
-		if u.GetKind() == "" {
-			u.SetKind(objKind + "Class")
-		}
-		if u.GetNamespace() == "" {
-			u.SetNamespace(obj.GetNamespace())
-		}
-
-		n = g.addNodeIfNotExist(u)
-		related = append(related, n)
-	} else if stringInSlice(objKind, kindsPortableClass) {
-		// This is a resource claim
-		// Get class reference
-		u, err := getObjRef(obj, classRefPath)
-		if err != nil {
-			return err
-		}
-		n := g.addNodeIfNotExist(u)
-		related = append(related, n)
-	} else if stringInSlice(objKind, kindsManaged) {
-		// This is a managed resource
-		// Get claim reference
-		u, err := getObjRef(obj, claimRefPath)
-		if err != nil {
-			return err
-		}
-
-		n := g.addNodeIfNotExist(u)
-		related = append(related, n)
-
-		// Get class reference
-		u, err = getObjRef(obj, resourceClassRefPath)
-		if err != nil {
-			return err
-		}
-
-		n = g.addNodeIfNotExist(u)
-		related = append(related, n)
-	} else if stringInSlice(objKind, kindsNonPortableClass) {
-		// This is a non-portable class
-		u, err := getObjRef(obj, providerRefPath)
-		if err != nil {
-			return err
-		}
-
-		// TODO: Could we set full resource reference?
-		u.SetKind("Provider")
-		n := g.addNodeIfNotExist(u)
-		related = append(related, n)
-	} else {
-		fmt.Println("!!!!!!I don't know this group: ", obj.GroupVersionKind().Group, " kind: ", objKind)
+	objs, err := crossplane.GetRelated(n.U)
+	if err != nil {
+		return err
 	}
-
-	n.Related = related
+	for _, o := range objs {
+		r := g.addNodeIfNotExist(o)
+		n.Related = append(n.Related, r)
+	}
 	return nil
 }
 
@@ -218,47 +125,6 @@ func (g *Graph) addNodeIfNotExist(u *unstructured.Unstructured) *Node {
 	return n
 }
 
-func getObjRef(obj *unstructured.Unstructured, path []string) (*unstructured.Unstructured, error) {
-	a, aFound, err := unstructured.NestedString(obj.Object, append(path, "apiVersion")...)
-	if err != nil {
-		return nil, err
-	}
-	k, kFound, err := unstructured.NestedString(obj.Object, append(path, "kind")...)
-	if err != nil {
-		return nil, err
-	}
-	n, nFound, err := unstructured.NestedString(obj.Object, append(path, "name")...)
-	if err != nil {
-		return nil, err
-	}
-	ns, nsFound, err := unstructured.NestedString(obj.Object, append(path, "namespace")...)
-	if err != nil {
-		return nil, err
-	}
-
-	if !aFound && !kFound && !nFound && !nsFound {
-		return nil, errors.New("Failed to find a reference!")
-	}
-	fmt.Println("Related to resource  ---> ", a, k, n, ns)
-	u := &unstructured.Unstructured{Object: map[string]interface{}{}}
-
-	u.SetAPIVersion(a)
-	u.SetKind(k)
-	u.SetName(n)
-	u.SetNamespace(ns)
-
-	return u, nil
-}
-
 func getObjId(u *unstructured.Unstructured) string {
 	return strings.ToLower(fmt.Sprintf("%s-%s-%s", u.GetKind(), u.GetNamespace(), u.GetName()))
-}
-
-func stringInSlice(a string, list []string) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
-	}
-	return false
 }

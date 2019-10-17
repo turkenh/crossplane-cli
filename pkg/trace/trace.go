@@ -10,7 +10,7 @@ type Node struct {
 }
 
 type GraphBuilder interface {
-	BuildGraph(name, namespace, kind string) (*Node, error)
+	BuildGraph(string, string, string) (*Node, []*unstructured.Unstructured, error)
 }
 
 type Printer interface {
