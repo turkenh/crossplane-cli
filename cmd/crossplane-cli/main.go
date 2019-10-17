@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"path/filepath"
 	"time"
@@ -22,6 +23,8 @@ func main() {
 	//resourceName := "wordpress-cluster-64edc6f9-7c70-43ed-bd1d-1c26e09e0a45"
 	kind := "mysqlinstance"
 	resourceName := "wordpress-mysql-64edc6f9-7c70-43ed-bd1d-1c26e09e0a45"
+	//kind := "GKECluster"
+	//resourceName := "kubernetescluster-5c843147-069e-4a94-81d3-188c9e0fbd9c"
 	namespace := "app-project1-dev"
 	log.Println("Tracing", kind, resourceName)
 
@@ -55,9 +58,13 @@ func main() {
 
 	g := trace.NewGraph(client, my_restmapper)
 
-	_, err = g.BuildGraph(resourceName, namespace, kind)
+	_, objs, err := g.BuildGraph(resourceName, namespace, kind)
 	if err != nil {
 		panic(err)
+	}
+	fmt.Println("-------")
+	for _, o := range objs {
+		fmt.Println("*", o.GetKind(), o.GetName(), o.GetNamespace())
 	}
 	// TODO(hasan): print
 

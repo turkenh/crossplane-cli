@@ -1,6 +1,7 @@
 package trace
 
 import (
+	"container/list"
 	"errors"
 	"fmt"
 	"strings"
@@ -52,7 +53,11 @@ func NewGraph(client dynamic.Interface, restMapper meta.RESTMapper) *Graph {
 	}
 }
 
-func (g *Graph) BuildGraph(name, namespace, kind string) (*Node, error) {
+func (g *Graph) BuildGraph(name, namespace, kind string) (*Node, []*unstructured.Unstructured, error) {
+	queue := list.New()
+
+	traversedObj := make([]*unstructured.Unstructured, 0)
+
 	u := &unstructured.Unstructured{Object: map[string]interface{}{}}
 
 	u.SetAPIVersion("")
@@ -60,37 +65,39 @@ func (g *Graph) BuildGraph(name, namespace, kind string) (*Node, error) {
 	u.SetName(name)
 	u.SetNamespace(namespace)
 
-	root := &Node{
-		U: u,
-	}
-
-	g.nodes[getObjId(u)] = root
+	root := g.addNodeIfNotExist(u)
 
 	err := g.fetchObj(root)
 	if err != nil {
 		panic(err)
 	}
 
-	err = g.getRelated(root)
-	if err != nil {
-		panic(err)
+	traversedObj = append(traversedObj, root.U)
+	queue.PushBack(root)
+
+	for queue.Len() > 0 {
+		fmt.Println("--")
+		qnode := queue.Front()
+		node := qnode.Value.(*Node)
+		err = g.getRelated(node)
+		if err != nil {
+			panic(err)
+		}
+
+		for _, n := range node.Related {
+			if n.U.GetUID() == "" {
+				err := g.fetchObj(n)
+				if err != nil {
+					panic(err)
+				}
+				traversedObj = append(traversedObj, n.U)
+				queue.PushBack(n)
+			}
+		}
+		queue.Remove(qnode)
 	}
 
-	for k, n := range g.nodes {
-		fmt.Printf("- %s\n", k)
-		if n.U.GetUID() == "" {
-			g.fetchObj(n)
-		}
-		if n.Related == nil {
-			g.getRelated(n)
-		}
-	}
-
-	fmt.Println("-------")
-	for k, _ := range g.nodes {
-		fmt.Printf("- %s\n", k)
-	}
-	return root, nil
+	return root, traversedObj, nil
 }
 
 func (g *Graph) fetchObj(n *Node) error {
