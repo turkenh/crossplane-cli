@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"path/filepath"
 	"time"
 
@@ -17,21 +18,21 @@ import (
 )
 
 func main() {
-	//kind := "KubernetesCluster"
-	//resourceName := "wordpress-cluster-64edc6f9-7c70-43ed-bd1d-1c26e09e0a45"
-	kind := "mysqlinstance"
-	resourceName := "wordpress-mysql-64edc6f9-7c70-43ed-bd1d-1c26e09e0a45"
-	//kind := "GKECluster"
-	//resourceName := "kubernetescluster-5c843147-069e-4a94-81d3-188c9e0fbd9c"
-	namespace := "app-project1-dev"
-
 	var kubeconfig *string
 	if home := homedir.HomeDir(); home != "" {
 		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
 	} else {
 		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
 	}
+	//namespace := flag.String("namespace", "", "namespace")
 	flag.Parse()
+	kind := flag.Arg(0)
+	resourceName := flag.Arg(1)
+	namespace := flag.Arg(2)
+	if kind == "" || resourceName == "" || namespace == "" {
+		fmt.Println("Missing arguments: KIND RESOURCE_NAME NAMESPACE")
+		return
+	}
 	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
 	if err != nil {
 		panic(err)

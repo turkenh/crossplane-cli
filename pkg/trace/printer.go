@@ -53,7 +53,7 @@ func (p *SimplePrinter) printOverview(objs []*unstructured.Unstructured) error {
 		return err
 	}
 	for _, o := range objs {
-		c := crossplane.ResourceFromObj(o)
+		c := crossplane.ObjectFromUnstructured(o)
 		// Skip unknown objects for now
 		if c == nil {
 			continue
@@ -80,7 +80,7 @@ func (p *SimplePrinter) printDetails(objs []*unstructured.Unstructured) error {
 
 	d := ""
 	for _, o := range objs {
-		c := crossplane.ResourceFromObj(o)
+		c := crossplane.ObjectFromUnstructured(o)
 		// Skip unknown objects for now
 		if c == nil {
 			continue

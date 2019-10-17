@@ -1,9 +1,6 @@
 package crossplane
 
 import (
-	"errors"
-	"fmt"
-
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -32,134 +29,26 @@ var (
 	}
 )
 
-type CrossplaneObject interface {
+type Object interface {
 	GetStatus() string
 	GetDetails() string
 	GetAge() string
+	GetRelated() ([]*unstructured.Unstructured, error)
 }
 
-func ResourceFromObj(obj *unstructured.Unstructured) CrossplaneObject {
-	objKind := obj.GetKind()
+func ObjectFromUnstructured(u *unstructured.Unstructured) Object {
+	objKind := u.GetKind()
 	if isClaim(objKind) {
-		return NewClaim(obj)
+		return NewClaim(u)
 	} else if isManaged(objKind) {
-		return NewManaged(obj)
+		return NewManaged(u)
 	} else if isPortableClass(objKind) {
-		return NewPortableClass(obj)
+		return NewPortableClass(u)
 	} else if isNonPortableClass(objKind) {
-		return NewNonPortableClass(obj)
+		return NewNonPortableClass(u)
 	}
-	//fmt.Fprintln(os.Stderr, "!!!!!!Object is not a known crossplane object -> group: ", obj.GroupVersionKind().Group, " kind: ", objKind)
+	//fmt.Fprintln(os.Stderr, "!!!!!!Object is not a known crossplane object -> group: ", u.GroupVersionKind().Group, " kind: ", objKind)
 	return nil
-}
-
-func GetRelated(obj *unstructured.Unstructured) ([]*unstructured.Unstructured, error) {
-	related := make([]*unstructured.Unstructured, 0, 4)
-
-	objKind := obj.GetKind()
-	if isClaim(objKind) {
-		// This is a resource claim
-		// Get resource reference
-		u, err := getObjRef(obj, resourceRefPath)
-		if err != nil {
-			return related, err
-		}
-
-		related = append(related, u)
-
-		// Get class reference
-		u, err = getObjRef(obj, resourceClassRefPath)
-		if err != nil {
-			return related, err
-		}
-		// TODO(ht): Special case for claim -> portableClass, currently apiversion, kind and ns missing
-		//  hence we need to manually fill them. This limitation will be removed with
-		//  https://github.com/crossplaneio/crossplane/blob/master/design/one-pager-simple-class-selection.md
-		if u.GetAPIVersion() == "" {
-			u.SetAPIVersion(obj.GetAPIVersion())
-		}
-		if u.GetKind() == "" {
-			u.SetKind(objKind + "Class")
-		}
-		if u.GetNamespace() == "" {
-			u.SetNamespace(obj.GetNamespace())
-		}
-
-		related = append(related, u)
-	} else if isPortableClass(objKind) {
-		// This is a resource claim
-		// Get class reference
-		u, err := getObjRef(obj, classRefPath)
-		if err != nil {
-			return related, err
-		}
-		related = append(related, u)
-	} else if isManaged(objKind) {
-		// This is a managed resource
-		// Get claim reference
-		u, err := getObjRef(obj, claimRefPath)
-		if err != nil {
-			return related, err
-		}
-
-		related = append(related, u)
-
-		// Get class reference
-		u, err = getObjRef(obj, resourceClassRefPath)
-		if err != nil {
-			return related, err
-		}
-
-		related = append(related, u)
-	} else if isNonPortableClass(objKind) {
-		// This is a non-portable class
-		u, err := getObjRef(obj, providerRefPath)
-		if err != nil {
-			return related, err
-		}
-
-		// TODO: Could we set full resource reference for providerRef?
-		if u.GetKind() == "" {
-			u.SetKind("Provider")
-		}
-		related = append(related, u)
-	} else {
-		fmt.Println("!!!!!!I don't know this group: ", obj.GroupVersionKind().Group, " kind: ", objKind)
-	}
-
-	return related, nil
-}
-
-func getObjRef(obj *unstructured.Unstructured, path []string) (*unstructured.Unstructured, error) {
-	a, aFound, err := unstructured.NestedString(obj.Object, append(path, "apiVersion")...)
-	if err != nil {
-		return nil, err
-	}
-	k, kFound, err := unstructured.NestedString(obj.Object, append(path, "kind")...)
-	if err != nil {
-		return nil, err
-	}
-	n, nFound, err := unstructured.NestedString(obj.Object, append(path, "name")...)
-	if err != nil {
-		return nil, err
-	}
-	ns, nsFound, err := unstructured.NestedString(obj.Object, append(path, "namespace")...)
-	if err != nil {
-		return nil, err
-	}
-
-	if !aFound && !kFound && !nFound && !nsFound {
-		return nil, errors.New("Failed to find a reference!")
-	}
-
-	u := &unstructured.Unstructured{Object: map[string]interface{}{}}
-
-	u.SetAPIVersion(a)
-	u.SetKind(k)
-	u.SetName(n)
-	u.SetNamespace(ns)
-
-	return u, nil
 }
 
 func stringInSlice(a string, list []string) bool {

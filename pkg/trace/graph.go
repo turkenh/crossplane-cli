@@ -45,7 +45,7 @@ func (g *Graph) BuildGraph(name, namespace, kind string) (*Node, []*unstructured
 
 	err := g.fetchObj(root)
 	if err != nil {
-		panic(err)
+		return nil, nil, err
 	}
 
 	traversedObj = append(traversedObj, root.U)
@@ -56,14 +56,14 @@ func (g *Graph) BuildGraph(name, namespace, kind string) (*Node, []*unstructured
 		node := qnode.Value.(*Node)
 		err = g.findRelated(node)
 		if err != nil {
-			panic(err)
+			return nil, nil, err
 		}
 
 		for _, n := range node.Related {
 			if n.U.GetUID() == "" {
 				err := g.fetchObj(n)
 				if err != nil {
-					panic(err)
+					return nil, nil, err
 				}
 				traversedObj = append(traversedObj, n.U)
 				queue.PushBack(n)
@@ -82,12 +82,12 @@ func (g *Graph) fetchObj(n *Node) error {
 	u := n.U
 	res, err := g.restMapper.ResourceFor(schema.GroupVersionResource{Group: u.GroupVersionKind().Group, Version: u.GroupVersionKind().Version, Resource: u.GetKind()})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	u, err = g.client.Resource(res).Namespace(u.GetNamespace()).Get(u.GetName(), metav1.GetOptions{})
 	if err != nil {
-		panic(err)
+		return err
 	}
 	n.U = u
 	return nil
@@ -96,7 +96,14 @@ func (g *Graph) fetchObj(n *Node) error {
 func (g *Graph) findRelated(n *Node) error {
 	n.Related = make([]*Node, 0)
 
-	objs, err := crossplane.GetRelated(n.U)
+	c := crossplane.ObjectFromUnstructured(n.U)
+	// Skip unknown objects for now
+	if c == nil {
+		//return errors.New(fmt.Sprintf("%v not a known crossplane object", n.u.GroupVersionKind().String()))
+		fmt.Printf("%v not a known crossplane object\n", n.U.GroupVersionKind().String())
+		return nil
+	}
+	objs, err := c.GetRelated()
 	if err != nil {
 		return err
 	}
