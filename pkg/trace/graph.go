@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/crossplaneio/crossplane-cli/pkg/trace/crossplane"
+	"github.com/crossplaneio/crossplane-cli/pkg/crossplane"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"

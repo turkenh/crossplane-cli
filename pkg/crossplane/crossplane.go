@@ -21,6 +21,9 @@ var (
 		"CloudsqlInstanceClass",
 		"GKEClusterClass",
 	}
+	kindsProvider = []string{
+		"Provider",
+	}
 )
 
 type Object interface {
@@ -40,6 +43,8 @@ func ObjectFromUnstructured(u *unstructured.Unstructured) Object {
 		return NewPortableClass(u)
 	} else if isNonPortableClass(objKind) {
 		return NewNonPortableClass(u)
+	} else if isProvider(objKind) {
+		return NewProvider(u)
 	}
 	//fmt.Fprintln(os.Stderr, "!!!!!!Object is not a known crossplane object -> group: ", u.GroupVersionKind().Group, " kind: ", objKind)
 	return nil

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/crossplaneio/crossplane-cli/pkg/trace/crossplane"
+	"github.com/crossplaneio/crossplane-cli/pkg/crossplane"
 
 	"github.com/fatih/color"
 

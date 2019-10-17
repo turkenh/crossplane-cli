@@ -115,6 +115,9 @@ func isNonPortableClass(kind string) bool {
 func isPortableClass(kind string) bool {
 	return stringInSlice(kind, kindsPortableClass)
 }
+func isProvider(kind string) bool {
+	return stringInSlice(kind, kindsProvider)
+}
 
 func getNestedString(obj map[string]interface{}, fields ...string) string {
 	val, found, err := unstructured.NestedString(obj, fields...)

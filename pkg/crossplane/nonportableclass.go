@@ -1,6 +1,8 @@
 package crossplane
 
 import (
+	"strings"
+
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -32,6 +34,13 @@ func (o *NonPortableClass) GetRelated() ([]*unstructured.Unstructured, error) {
 	}
 
 	// TODO: Could we set full resource reference for providerRef?
+	if u.GetAPIVersion() == "" {
+		oApiVersion := o.u.GetAPIVersion()
+		s := strings.Split(oApiVersion, ".")
+		a := strings.Join(s[1:], ".")
+
+		u.SetAPIVersion(a)
+	}
 	if u.GetKind() == "" {
 		u.SetKind("Provider")
 	}
