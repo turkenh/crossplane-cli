@@ -63,7 +63,7 @@ func (o *Application) GetDetails() string {
 	return d
 }
 
-func (o *Application) GetRelated(f func(metav1.GroupVersionKind, string, string) ([]unstructured.Unstructured, error)) ([]*unstructured.Unstructured, error) {
+func (o *Application) GetRelated(filterByLabel func(metav1.GroupVersionKind, string, string) ([]unstructured.Unstructured, error)) ([]*unstructured.Unstructured, error) {
 	related := make([]*unstructured.Unstructured, 0)
 	obj := o.u
 
@@ -76,7 +76,7 @@ func (o *Application) GetRelated(f func(metav1.GroupVersionKind, string, string)
 	related = append(related, u)
 
 	// Get related resources with resourceSelector
-	uArr, err := f(metav1.GroupVersionKind{
+	uArr, err := filterByLabel(metav1.GroupVersionKind{
 		Kind: "MySQLInstance",
 	}, obj.GetNamespace(), getNestedLabelSelector(obj.Object, "spec", "resourceSelector", "matchLabels"))
 	if err != nil {

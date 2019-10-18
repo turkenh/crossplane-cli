@@ -3,7 +3,6 @@ package trace
 import (
 	"fmt"
 	"os"
-	"strings"
 	"text/tabwriter"
 
 	"github.com/crossplaneio/crossplane-cli/pkg/crossplane"
@@ -78,19 +77,21 @@ func (p *SimplePrinter) printDetails(objs []*unstructured.Unstructured) error {
 	}
 	fmt.Fprintln(p.tabWriter, "")
 
-	d := ""
+	allDetails := ""
 	for _, o := range objs {
 		c := crossplane.ObjectFromUnstructured(o)
 		// Skip unknown objects for now
 		if c == nil {
 			continue
 		}
-		d += c.GetDetails()
+		d := c.GetDetails()
 		if d != "" {
 			d += "\n\n"
 		}
+		allDetails += d
 	}
-	fmt.Fprintln(p.tabWriter, strings.TrimSpace(d))
+	fmt.Fprintln(p.tabWriter, allDetails)
+	//fmt.Fprintln(p.tabWriter, strings.TrimSpace(allDetails))
 	err = p.tabWriter.Flush()
 	if err != nil {
 		return err

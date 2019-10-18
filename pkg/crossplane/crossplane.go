@@ -1,6 +1,9 @@
 package crossplane
 
 import (
+	"fmt"
+	"os"
+
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,7 +38,7 @@ type Object interface {
 	GetStatus() string
 	GetDetails() string
 	GetAge() string
-	GetRelated(f func(metav1.GroupVersionKind, string, string) ([]unstructured.Unstructured, error)) ([]*unstructured.Unstructured, error)
+	GetRelated(filterByLabel func(metav1.GroupVersionKind, string, string) ([]unstructured.Unstructured, error)) ([]*unstructured.Unstructured, error)
 }
 
 func ObjectFromUnstructured(u *unstructured.Unstructured) Object {
@@ -53,6 +56,6 @@ func ObjectFromUnstructured(u *unstructured.Unstructured) Object {
 	} else if isApplication(objKind) {
 		return NewApplication(u)
 	}
-	//fmt.Fprintln(os.Stderr, "!!!!!!Object is not a known crossplane object -> group: ", u.GroupVersionKind().Group, " kind: ", objKind)
+	fmt.Fprintln(os.Stderr, "!!!!!!Object is not a known crossplane object -> group: ", u.GroupVersionKind().Group, " kind: ", objKind)
 	return nil
 }

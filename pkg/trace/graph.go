@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/types"
+
 	"github.com/crossplaneio/crossplane-cli/pkg/crossplane"
 
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -49,7 +51,9 @@ func (g *Graph) BuildGraph(name, namespace, kind string) (root *Node, traversed 
 		return nil, nil, err
 	}
 
+	visited := map[types.UID]bool{}
 	traversed = append(traversed, root.U)
+	visited[root.U.GetUID()] = true
 	queue.PushBack(root)
 
 	for queue.Len() > 0 {
@@ -66,7 +70,12 @@ func (g *Graph) BuildGraph(name, namespace, kind string) (root *Node, traversed 
 				if err != nil {
 					return nil, nil, err
 				}
-				traversed = append(traversed, n.U)
+			}
+			u := n.U
+			uid := u.GetUID()
+			if !visited[uid] {
+				traversed = append(traversed, u)
+				visited[uid] = true
 				queue.PushBack(n)
 			}
 		}

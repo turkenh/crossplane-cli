@@ -25,7 +25,7 @@ func (o *Provider) GetDetails() string {
 	return ""
 }
 
-func (o *Provider) GetRelated(f func(metav1.GroupVersionKind, string, string) ([]unstructured.Unstructured, error)) ([]*unstructured.Unstructured, error) {
+func (o *Provider) GetRelated(filterByLabel func(metav1.GroupVersionKind, string, string) ([]unstructured.Unstructured, error)) ([]*unstructured.Unstructured, error) {
 	// TODO(ht): credentialsSecretRef?
 	return nil, nil
 }
