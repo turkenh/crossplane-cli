@@ -134,6 +134,26 @@ func getNestedString(obj map[string]interface{}, fields ...string) string {
 	return val
 }
 
+func getNestedLabelSelector(obj map[string]interface{}, fields ...string) string {
+	selMap, found, err := unstructured.NestedMap(obj, fields...)
+
+	if err != nil {
+		return "<unknown>"
+	}
+	if !found {
+		return ""
+	}
+	selector := ""
+	for k, v := range selMap {
+		if selector != "" {
+			selector += ","
+		}
+		val := v.(string)
+		selector += fmt.Sprintf("%s=%s", k, val)
+	}
+	return selector
+}
+
 func getNestedInt64(obj map[string]interface{}, fields ...string) int64 {
 	val, found, err := unstructured.NestedInt64(obj, fields...)
 	if !found || err != nil {

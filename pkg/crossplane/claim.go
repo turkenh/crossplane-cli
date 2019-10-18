@@ -1,6 +1,7 @@
 package crossplane
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -24,7 +25,7 @@ func (o *Claim) GetDetails() string {
 	return getResourceDetails(o.u)
 }
 
-func (o *Claim) GetRelated() ([]*unstructured.Unstructured, error) {
+func (o *Claim) GetRelated(f func(metav1.GroupVersionKind, string, string) ([]unstructured.Unstructured, error)) ([]*unstructured.Unstructured, error) {
 	related := make([]*unstructured.Unstructured, 0)
 	obj := o.u
 

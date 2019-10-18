@@ -1,6 +1,9 @@
 package crossplane
 
-import "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+)
 
 type Provider struct {
 	u *unstructured.Unstructured
@@ -22,7 +25,7 @@ func (o *Provider) GetDetails() string {
 	return ""
 }
 
-func (o *Provider) GetRelated() ([]*unstructured.Unstructured, error) {
+func (o *Provider) GetRelated(f func(metav1.GroupVersionKind, string, string) ([]unstructured.Unstructured, error)) ([]*unstructured.Unstructured, error) {
 	// TODO(ht): credentialsSecretRef?
 	return nil, nil
 }

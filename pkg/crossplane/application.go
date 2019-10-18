@@ -3,6 +3,7 @@ package crossplane
 import (
 	"fmt"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -62,7 +63,7 @@ func (o *Application) GetDetails() string {
 	return d
 }
 
-func (o *Application) GetRelated() ([]*unstructured.Unstructured, error) {
+func (o *Application) GetRelated(f func(metav1.GroupVersionKind, string, string) ([]unstructured.Unstructured, error)) ([]*unstructured.Unstructured, error) {
 	related := make([]*unstructured.Unstructured, 0)
 	obj := o.u
 
@@ -73,5 +74,18 @@ func (o *Application) GetRelated() ([]*unstructured.Unstructured, error) {
 	}
 
 	related = append(related, u)
+
+	// Get related resources with resourceSelector
+	uArr, err := f(metav1.GroupVersionKind{
+		Kind: "MySQLInstance",
+	}, obj.GetNamespace(), getNestedLabelSelector(obj.Object, "spec", "resourceSelector", "matchLabels"))
+	if err != nil {
+		return related, err
+	}
+
+	for _, u := range uArr {
+		related = append(related, &u)
+	}
+
 	return related, nil
 }

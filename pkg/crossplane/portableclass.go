@@ -1,6 +1,9 @@
 package crossplane
 
-import "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+)
 
 type PortableClass struct {
 	u *unstructured.Unstructured
@@ -21,7 +24,7 @@ func (o *PortableClass) GetDetails() string {
 	return ""
 }
 
-func (o *PortableClass) GetRelated() ([]*unstructured.Unstructured, error) {
+func (o *PortableClass) GetRelated(f func(metav1.GroupVersionKind, string, string) ([]unstructured.Unstructured, error)) ([]*unstructured.Unstructured, error) {
 	related := make([]*unstructured.Unstructured, 0)
 	obj := o.u
 

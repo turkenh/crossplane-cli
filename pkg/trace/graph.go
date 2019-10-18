@@ -30,6 +30,7 @@ func NewGraph(client dynamic.Interface, restMapper meta.RESTMapper) *Graph {
 }
 
 func (g *Graph) BuildGraph(name, namespace, kind string) (root *Node, traversed []*unstructured.Unstructured, err error) {
+	g.filterByLabel(metav1.GroupVersionKind{}, "", "")
 	queue := list.New()
 
 	traversed = make([]*unstructured.Unstructured, 0)
@@ -93,6 +94,19 @@ func (g *Graph) fetchObj(n *Node) error {
 	return nil
 }
 
+func (g *Graph) filterByLabel(gvk metav1.GroupVersionKind, namespace, selector string) ([]unstructured.Unstructured, error) {
+	res, err := g.restMapper.ResourceFor(schema.GroupVersionResource{Group: gvk.Group, Version: gvk.Version, Resource: gvk.Kind})
+	if err != nil {
+		return nil, err
+	}
+
+	list, err := g.client.Resource(res).Namespace(namespace).List(metav1.ListOptions{LabelSelector: selector})
+	if err != nil {
+		return nil, err
+	}
+	return list.Items, nil
+}
+
 func (g *Graph) findRelated(n *Node) error {
 	n.Related = make([]*Node, 0)
 
@@ -103,7 +117,7 @@ func (g *Graph) findRelated(n *Node) error {
 		fmt.Printf("%v not a known crossplane object\n", n.U.GroupVersionKind().String())
 		return nil
 	}
-	objs, err := c.GetRelated()
+	objs, err := c.GetRelated(g.filterByLabel)
 	if err != nil {
 		return err
 	}

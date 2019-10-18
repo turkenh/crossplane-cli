@@ -2,6 +2,8 @@ package crossplane
 
 import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
@@ -33,7 +35,7 @@ type Object interface {
 	GetStatus() string
 	GetDetails() string
 	GetAge() string
-	GetRelated() ([]*unstructured.Unstructured, error)
+	GetRelated(f func(metav1.GroupVersionKind, string, string) ([]unstructured.Unstructured, error)) ([]*unstructured.Unstructured, error)
 }
 
 func ObjectFromUnstructured(u *unstructured.Unstructured) Object {
