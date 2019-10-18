@@ -15,6 +15,8 @@ var (
 		"KubernetesCluster",
 	}
 	kindsManaged = []string{
+		"MysqlServer",
+		"PostgreSQLInstance",
 		"CloudsqlInstance",
 		"GKECluster",
 	}
@@ -31,6 +33,9 @@ var (
 	}
 	kindsApplication = []string{
 		"KubernetesApplication",
+	}
+	kindsApplicationResource = []string{
+		"KubernetesApplicationResource",
 	}
 )
 
@@ -55,6 +60,8 @@ func ObjectFromUnstructured(u *unstructured.Unstructured) Object {
 		return NewProvider(u)
 	} else if isApplication(objKind) {
 		return NewApplication(u)
+	} else if isApplicationResource(objKind) {
+		return NewApplicationResource(u)
 	}
 	fmt.Fprintln(os.Stderr, "!!!!!!Object is not a known crossplane object -> group: ", u.GroupVersionKind().Group, " kind: ", objKind)
 	return nil

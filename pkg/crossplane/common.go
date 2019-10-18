@@ -122,6 +122,9 @@ func isProvider(kind string) bool {
 func isApplication(kind string) bool {
 	return stringInSlice(kind, kindsApplication)
 }
+func isApplicationResource(kind string) bool {
+	return stringInSlice(kind, kindsApplicationResource)
+}
 
 func getNestedString(obj map[string]interface{}, fields ...string) string {
 	val, found, err := unstructured.NestedString(obj, fields...)

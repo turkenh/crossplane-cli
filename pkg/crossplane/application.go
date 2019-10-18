@@ -3,6 +3,8 @@ package crossplane
 import (
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -76,15 +78,22 @@ func (o *Application) GetRelated(filterByLabel func(metav1.GroupVersionKind, str
 	related = append(related, u)
 
 	// Get related resources with resourceSelector
-	uArr, err := filterByLabel(metav1.GroupVersionKind{
-		Kind: "MySQLInstance",
-	}, obj.GetNamespace(), getNestedLabelSelector(obj.Object, "spec", "resourceSelector", "matchLabels"))
-	if err != nil {
-		return related, err
-	}
+	resourceKinds := make([]string, 0, len(kindsManaged)+len(kindsClaim)+len(kindsApplicationResource))
+	resourceKinds = append(resourceKinds, kindsManaged...)
+	resourceKinds = append(resourceKinds, kindsClaim...)
+	resourceKinds = append(resourceKinds, kindsApplicationResource...)
 
-	for _, u := range uArr {
-		related = append(related, &u)
+	for _, k := range resourceKinds {
+		uArr, err := filterByLabel(metav1.GroupVersionKind{
+			Kind: k,
+		}, obj.GetNamespace(), getNestedLabelSelector(obj.Object, "spec", "resourceSelector", "matchLabels"))
+		if err != nil && !meta.IsNoMatchError(err) {
+			return related, err
+		}
+
+		for _, u := range uArr {
+			related = append(related, u.DeepCopy())
+		}
 	}
 
 	return related, nil
