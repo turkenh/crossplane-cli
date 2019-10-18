@@ -1,6 +1,7 @@
 package trace
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -53,10 +54,12 @@ func (p *SimplePrinter) printOverview(objs []*unstructured.Unstructured) error {
 		return err
 	}
 	for _, o := range objs {
-		c := crossplane.ObjectFromUnstructured(o)
-		// Skip unknown objects for now
+		c, err := crossplane.ObjectFromUnstructured(o)
+		if err != nil {
+			return err
+		}
 		if c == nil {
-			continue
+			return errors.New("not a known crossplane object")
 		}
 		_, err = fmt.Fprintf(p.tabWriter, "%v\t%v\t%v\t%v\t%v\t\n", o.GetKind(), o.GetName(), o.GetNamespace(), c.GetStatus(), c.GetAge())
 		if err != nil {
@@ -80,10 +83,12 @@ func (p *SimplePrinter) printDetails(objs []*unstructured.Unstructured) error {
 
 	allDetails := ""
 	for _, o := range objs {
-		c := crossplane.ObjectFromUnstructured(o)
-		// Skip unknown objects for now
+		c, err := crossplane.ObjectFromUnstructured(o)
+		if err != nil {
+			return err
+		}
 		if c == nil {
-			continue
+			return errors.New("not a known crossplane object")
 		}
 		d := c.GetDetails()
 		if d != "" {

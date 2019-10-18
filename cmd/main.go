@@ -33,7 +33,7 @@ func main() {
 	kind := pflag.Arg(0)
 	resourceName := pflag.Arg(1)
 	if kind == "" || resourceName == "" {
-		failWithErr(fmt.Errorf("Missing arguments: KIND RESOURCE_NAME [-n| --namespace NAMESPACE]"))
+		failWithErr(fmt.Errorf("missing arguments: KIND NAME [-n|--namespace NAMESPACE]"))
 	}
 	fmt.Fprintf(os.Stderr, "Collecting information for %s %s in namespace %s...\n\n", kind, resourceName, namespace)
 
@@ -57,7 +57,7 @@ func main() {
 	mapper := restmapper.NewDeferredDiscoveryRESTMapper(discoveryClient)
 	rMapper := restmapper.NewShortcutExpander(mapper, discoveryClient)
 
-	g := trace.NewGraph(client, rMapper)
+	g := trace.NewKubeGraphBuilder(client, rMapper)
 	_, objs, err := g.BuildGraph(resourceName, namespace, kind)
 	if err != nil {
 		failWithErr(err)

@@ -1,8 +1,8 @@
 package crossplane
 
 import (
+	"errors"
 	"fmt"
-	"os"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
@@ -79,23 +79,22 @@ type Object interface {
 	GetRelated(filterByLabel func(metav1.GroupVersionKind, string, string) ([]unstructured.Unstructured, error)) ([]*unstructured.Unstructured, error)
 }
 
-func ObjectFromUnstructured(u *unstructured.Unstructured) Object {
+func ObjectFromUnstructured(u *unstructured.Unstructured) (Object, error) {
 	objKind := u.GetKind()
 	if isClaim(objKind) {
-		return NewClaim(u)
+		return NewClaim(u), nil
 	} else if isManaged(objKind) {
-		return NewManaged(u)
+		return NewManaged(u), nil
 	} else if isPortableClass(objKind) {
-		return NewPortableClass(u)
+		return NewPortableClass(u), nil
 	} else if isNonPortableClass(objKind) {
-		return NewNonPortableClass(u)
+		return NewNonPortableClass(u), nil
 	} else if isProvider(objKind) {
-		return NewProvider(u)
+		return NewProvider(u), nil
 	} else if isApplication(objKind) {
-		return NewApplication(u)
+		return NewApplication(u), nil
 	} else if isApplicationResource(objKind) {
-		return NewApplicationResource(u)
+		return NewApplicationResource(u), nil
 	}
-	fmt.Fprintln(os.Stderr, "!!!!!!Object is not a known crossplane object -> group: ", u.GroupVersionKind().Group, " kind: ", objKind)
-	return nil
+	return nil, errors.New(fmt.Sprintf("%s is not a known crossplane object", objKind))
 }

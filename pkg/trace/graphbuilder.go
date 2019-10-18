@@ -2,6 +2,7 @@ package trace
 
 import (
 	"container/list"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -17,21 +18,21 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type Graph struct {
+type KubeGraphBuilder struct {
 	client     dynamic.Interface
 	restMapper meta.RESTMapper
 	nodes      map[string]*Node
 }
 
-func NewGraph(client dynamic.Interface, restMapper meta.RESTMapper) *Graph {
-	return &Graph{
+func NewKubeGraphBuilder(client dynamic.Interface, restMapper meta.RESTMapper) *KubeGraphBuilder {
+	return &KubeGraphBuilder{
 		client:     client,
 		restMapper: restMapper,
 		nodes:      map[string]*Node{},
 	}
 }
 
-func (g *Graph) BuildGraph(name, namespace, kind string) (root *Node, traversed []*unstructured.Unstructured, err error) {
+func (g *KubeGraphBuilder) BuildGraph(name, namespace, kind string) (root *Node, traversed []*unstructured.Unstructured, err error) {
 	g.filterByLabel(metav1.GroupVersionKind{}, "", "")
 	queue := list.New()
 
@@ -85,7 +86,7 @@ func (g *Graph) BuildGraph(name, namespace, kind string) (root *Node, traversed 
 	return
 }
 
-func (g *Graph) fetchObj(n *Node) error {
+func (g *KubeGraphBuilder) fetchObj(n *Node) error {
 	if n.U.GetUID() != "" {
 		return nil
 	}
@@ -103,7 +104,7 @@ func (g *Graph) fetchObj(n *Node) error {
 	return nil
 }
 
-func (g *Graph) filterByLabel(gvk metav1.GroupVersionKind, namespace, selector string) ([]unstructured.Unstructured, error) {
+func (g *KubeGraphBuilder) filterByLabel(gvk metav1.GroupVersionKind, namespace, selector string) ([]unstructured.Unstructured, error) {
 	res, err := g.restMapper.ResourceFor(schema.GroupVersionResource{Group: gvk.Group, Version: gvk.Version, Resource: gvk.Kind})
 	if err != nil {
 		return nil, err
@@ -116,15 +117,15 @@ func (g *Graph) filterByLabel(gvk metav1.GroupVersionKind, namespace, selector s
 	return list.Items, nil
 }
 
-func (g *Graph) findRelated(n *Node) error {
+func (g *KubeGraphBuilder) findRelated(n *Node) error {
 	n.Related = make([]*Node, 0)
 
-	c := crossplane.ObjectFromUnstructured(n.U)
-	// Skip unknown objects for now
+	c, err := crossplane.ObjectFromUnstructured(n.U)
+	if err != nil {
+		return err
+	}
 	if c == nil {
-		//return errors.New(fmt.Sprintf("%v not a known crossplane object", n.u.GroupVersionKind().String()))
-		fmt.Printf("%v not a known crossplane object\n", n.U.GroupVersionKind().String())
-		return nil
+		return errors.New(fmt.Sprintf("%s is not a known crossplane object", n.U.GroupVersionKind().String()))
 	}
 	objs, err := c.GetRelated(g.filterByLabel)
 	if err != nil {
@@ -137,7 +138,7 @@ func (g *Graph) findRelated(n *Node) error {
 	return nil
 }
 
-func (g *Graph) addNodeIfNotExist(u *unstructured.Unstructured) *Node {
+func (g *KubeGraphBuilder) addNodeIfNotExist(u *unstructured.Unstructured) *Node {
 	var n *Node
 	if e, ok := g.nodes[getObjId(u)]; ok {
 		n = e
