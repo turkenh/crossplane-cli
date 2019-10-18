@@ -10,23 +10,55 @@ import (
 )
 
 var (
+	// TODO: Kind is not enough to identify GVK, need another way. Example, "Bucket", is it Claim or Managed?
 	kindsClaim = []string{
 		"MySQLInstance",
 		"KubernetesCluster",
+		"RedisCluster",
+		"PostgreSQLInstance",
+		"Bucket",
 	}
 	kindsManaged = []string{
+		"Redis",
 		"MysqlServer",
-		"PostgreSQLInstance",
+		"PostgresqlServer",
+		"AKSCluster",
+		"Container",
+		"Account",
+
 		"CloudsqlInstance",
 		"GKECluster",
+		"CloudMemorystoreInstance",
+		"Bucket",
+
+		"ReplicationGroup",
+		"EKSCluster",
+		"RDSInstance",
+		"S3Bucket",
 	}
 	kindsPortableClass = []string{
 		"MySQLInstanceClass",
 		"KubernetesClusterClass",
+		"RedisClusterClass",
+		"PostgreSQLInstanceClass",
+		"BucketClass",
 	}
 	kindsNonPortableClass = []string{
+		"RedisClass",
+		"AKSClusterClass",
+		"SQLServerClass",
+
 		"CloudsqlInstanceClass",
 		"GKEClusterClass",
+		"CloudMemorystoreInstanceClass",
+		"BucketClass",
+		"AccountClass",
+		"ContainerClass",
+
+		"ReplicationGroupClass",
+		"EKSClusterClass",
+		"RDSInstanceClass",
+		"S3BucketClass",
 	}
 	kindsProvider = []string{
 		"Provider",
