@@ -10,7 +10,8 @@ import (
 )
 
 var (
-	// TODO: Kind is not enough to identify GVK, need another way. Example, "Bucket", is it Claim or Managed?
+	// TODO: Kind is not enough to identify GVK, need another way. Example, "Bucket", is it Claim or Managed ?
+	// TODO: What about other resources related to networking and/or iam ?
 	kindsClaim = []string{
 		"MySQLInstance",
 		"KubernetesCluster",

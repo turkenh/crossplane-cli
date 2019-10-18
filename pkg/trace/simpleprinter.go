@@ -91,7 +91,7 @@ func (p *SimplePrinter) printDetails(objs []*unstructured.Unstructured) error {
 		}
 		allDetails += d
 	}
-	fmt.Fprintln(p.tabWriter, strings.TrimSpace(allDetails))
+	fmt.Fprintln(p.tabWriter, strings.Trim(strings.TrimSpace(allDetails), "-"))
 	err = p.tabWriter.Flush()
 	if err != nil {
 		return err

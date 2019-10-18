@@ -17,7 +17,7 @@ var (
 NAME	TEMPLATE-KIND	TEMPLATE-NAME	CLUSTER	STATUS
 %v	%v	%v	%v	%v	
 
-Status Remote
+Remote Status
 %v
 
 Status Conditions
