@@ -1,9 +1,6 @@
 package crossplane
 
 import (
-	"errors"
-	"fmt"
-
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -96,5 +93,5 @@ func ObjectFromUnstructured(u *unstructured.Unstructured) (Object, error) {
 	} else if isApplicationResource(objKind) {
 		return NewApplicationResource(u), nil
 	}
-	return nil, errors.New(fmt.Sprintf("%s is not a known crossplane object", objKind))
+	return nil, nil
 }

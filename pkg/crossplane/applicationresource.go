@@ -3,6 +3,7 @@ package crossplane
 import (
 	"bytes"
 	"encoding/gob"
+	"errors"
 	"fmt"
 
 	"sigs.k8s.io/yaml"
@@ -38,7 +39,7 @@ func (o *ApplicationResource) GetStatus() string {
 }
 
 func (o *ApplicationResource) GetAge() string {
-	return getAge(o.u)
+	return GetAge(o.u)
 }
 func GetBytes(key interface{}) ([]byte, error) {
 	var buf bytes.Buffer
@@ -87,14 +88,33 @@ func (o *ApplicationResource) GetRelated(filterByLabel func(metav1.GroupVersionK
 	obj := o.u
 
 	// Get resource reference
-	u, err := getObjRef(obj, applicationClusterRefPath)
+	u, err := getObjRef(obj.Object, applicationClusterRefPath)
 	if err != nil {
 		return related, err
 	}
 
 	related = append(related, u)
 
-	// TODO: Get related resources with resourceSelector
+	secrets, f, err := unstructured.NestedSlice(obj.Object, "spec", "secrets")
+	if err != nil {
+		return related, err
+	}
+	if f {
+		for _, val := range secrets {
+			s, ok := val.(map[string]interface{})
+			if !ok {
+				return related, errors.New("failed to get secret reference in KubernetesApplicationResource: " + obj.GetName())
+			}
+			u, err := getObjRef(s, []string{})
+			if err != nil {
+				return related, err
+			}
+			u.SetAPIVersion("v1")
+			u.SetKind("Secret")
+			u.SetNamespace(obj.GetNamespace())
+			related = append(related, u)
+		}
+	}
 
 	return related, nil
 }

@@ -18,7 +18,7 @@ func (o *Managed) GetStatus() string {
 }
 
 func (o *Managed) GetAge() string {
-	return getAge(o.u)
+	return GetAge(o.u)
 }
 
 func (o *Managed) GetDetails() string {
@@ -28,14 +28,13 @@ func (o *Managed) GetDetails() string {
 
 func (o *Managed) GetRelated(filterByLabel func(metav1.GroupVersionKind, string, string) ([]unstructured.Unstructured, error)) ([]*unstructured.Unstructured, error) {
 	related := make([]*unstructured.Unstructured, 0)
-	obj := o.u
+	obj := o.u.Object
 
 	// Get claim reference
 	u, err := getObjRef(obj, claimRefPath)
 	if err != nil {
 		return related, err
 	}
-
 	related = append(related, u)
 
 	// Get class reference
@@ -43,7 +42,17 @@ func (o *Managed) GetRelated(filterByLabel func(metav1.GroupVersionKind, string,
 	if err != nil {
 		return related, err
 	}
-
 	related = append(related, u)
+
+	// Get write to secret reference
+	u, err = getObjRef(obj, resourceSecretRefPath)
+	u.SetAPIVersion("v1")
+	u.SetKind("Secret")
+	u.SetNamespace(o.u.GetNamespace())
+	if err != nil {
+		return related, err
+	}
+	related = append(related, u)
+
 	return related, nil
 }

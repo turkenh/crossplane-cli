@@ -18,7 +18,7 @@ func (o *Provider) GetStatus() string {
 }
 
 func (o *Provider) GetAge() string {
-	return getAge(o.u)
+	return GetAge(o.u)
 }
 
 func (o *Provider) GetDetails() string {

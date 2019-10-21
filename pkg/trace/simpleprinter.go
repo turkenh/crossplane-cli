@@ -1,7 +1,6 @@
 package trace
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -10,8 +9,6 @@ import (
 	"github.com/crossplaneio/crossplane-cli/pkg/crossplane"
 
 	"github.com/fatih/color"
-
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 const (
@@ -30,18 +27,18 @@ func NewSimplePrinter() *SimplePrinter {
 	return &SimplePrinter{tabWriter: t}
 }
 
-func (p *SimplePrinter) Print(objs []*unstructured.Unstructured) error {
-	err := p.printOverview(objs)
+func (p *SimplePrinter) Print(nodes []*Node) error {
+	err := p.printOverview(nodes)
 	if err != nil {
 		return err
 	}
-	err = p.printDetails(objs)
+	err = p.printDetails(nodes)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func (p *SimplePrinter) printOverview(objs []*unstructured.Unstructured) error {
+func (p *SimplePrinter) printOverview(nodes []*Node) error {
 	titleF := color.New(color.Bold).Add(color.Underline)
 	_, err := titleF.Println("OVERVIEW")
 	if err != nil {
@@ -53,17 +50,23 @@ func (p *SimplePrinter) printOverview(objs []*unstructured.Unstructured) error {
 	if err != nil {
 		return err
 	}
-	for _, o := range objs {
+	for _, n := range nodes {
+		o := n.U
 		c, err := crossplane.ObjectFromUnstructured(o)
 		if err != nil {
 			return err
 		}
 		if c == nil {
-			return errors.New("not a known crossplane object")
-		}
-		_, err = fmt.Fprintf(p.tabWriter, "%v\t%v\t%v\t%v\t%v\t\n", o.GetKind(), o.GetName(), o.GetNamespace(), c.GetStatus(), c.GetAge())
-		if err != nil {
-			return err
+			// This is not a known crossplane object (e.g. secret) so no related obj.
+			_, err = fmt.Fprintf(p.tabWriter, "%v\t%v\t%v\t%v\t%v\t\n", o.GetKind(), o.GetName(), o.GetNamespace(), "N/A", crossplane.GetAge(o))
+			if err != nil {
+				return err
+			}
+		} else {
+			_, err = fmt.Fprintf(p.tabWriter, "%v\t%v\t%v\t%v\t%v\t\n", o.GetKind(), o.GetName(), o.GetNamespace(), c.GetStatus(), c.GetAge())
+			if err != nil {
+				return err
+			}
 		}
 	}
 	fmt.Fprintln(p.tabWriter, "")
@@ -73,7 +76,7 @@ func (p *SimplePrinter) printOverview(objs []*unstructured.Unstructured) error {
 	}
 	return nil
 }
-func (p *SimplePrinter) printDetails(objs []*unstructured.Unstructured) error {
+func (p *SimplePrinter) printDetails(nodes []*Node) error {
 	titleF := color.New(color.Bold).Add(color.Underline)
 	_, err := titleF.Println("DETAILS")
 	if err != nil {
@@ -82,13 +85,14 @@ func (p *SimplePrinter) printDetails(objs []*unstructured.Unstructured) error {
 	fmt.Fprintln(p.tabWriter, "")
 
 	allDetails := ""
-	for _, o := range objs {
+	for _, n := range nodes {
+		o := n.U
 		c, err := crossplane.ObjectFromUnstructured(o)
 		if err != nil {
 			return err
 		}
 		if c == nil {
-			return errors.New("not a known crossplane object")
+			continue
 		}
 		d := c.GetDetails()
 		if d != "" {

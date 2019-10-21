@@ -16,7 +16,7 @@ func NewNonPortableClass(u *unstructured.Unstructured) *NonPortableClass {
 }
 
 func (o *NonPortableClass) GetAge() string {
-	return getAge(o.u)
+	return GetAge(o.u)
 }
 
 func (o *NonPortableClass) GetStatus() string {
@@ -28,7 +28,7 @@ func (o *NonPortableClass) GetDetails() string {
 
 func (o *NonPortableClass) GetRelated(filterByLabel func(metav1.GroupVersionKind, string, string) ([]unstructured.Unstructured, error)) ([]*unstructured.Unstructured, error) {
 	related := make([]*unstructured.Unstructured, 0)
-	obj := o.u
+	obj := o.u.Object
 	u, err := getObjRef(obj, providerRefPath)
 	if err != nil {
 		return related, err

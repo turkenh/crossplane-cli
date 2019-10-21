@@ -15,6 +15,7 @@ var (
 	claimRefPath              = []string{"spec", "claimRef"}
 	classRefPath              = []string{"classRef"}
 	resourceClassRefPath      = []string{"spec", "classRef"}
+	resourceSecretRefPath     = []string{"spec", "writeConnectionSecretToRef"}
 	providerRefPath           = []string{"specTemplate", "providerRef"}
 
 	resourceDetailsTemplate = `%v
@@ -25,7 +26,7 @@ TYPE	STATUS	LAST-TRANSITION-TIME	REASON	MESSAGE
 `
 )
 
-func getAge(u *unstructured.Unstructured) string {
+func GetAge(u *unstructured.Unstructured) string {
 	ts := u.GetCreationTimestamp()
 	if ts.IsZero() {
 		return "<unknown>"
@@ -63,20 +64,20 @@ func getResourceDetails(u *unstructured.Unstructured) string {
 	return d
 }
 
-func getObjRef(obj *unstructured.Unstructured, path []string) (*unstructured.Unstructured, error) {
-	a, aFound, err := unstructured.NestedString(obj.Object, append(path, "apiVersion")...)
+func getObjRef(obj map[string]interface{}, path []string) (*unstructured.Unstructured, error) {
+	a, aFound, err := unstructured.NestedString(obj, append(path, "apiVersion")...)
 	if err != nil {
 		return nil, err
 	}
-	k, kFound, err := unstructured.NestedString(obj.Object, append(path, "kind")...)
+	k, kFound, err := unstructured.NestedString(obj, append(path, "kind")...)
 	if err != nil {
 		return nil, err
 	}
-	n, nFound, err := unstructured.NestedString(obj.Object, append(path, "name")...)
+	n, nFound, err := unstructured.NestedString(obj, append(path, "name")...)
 	if err != nil {
 		return nil, err
 	}
-	ns, nsFound, err := unstructured.NestedString(obj.Object, append(path, "namespace")...)
+	ns, nsFound, err := unstructured.NestedString(obj, append(path, "namespace")...)
 	if err != nil {
 		return nil, err
 	}

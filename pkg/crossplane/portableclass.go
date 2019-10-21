@@ -13,7 +13,7 @@ func NewPortableClass(u *unstructured.Unstructured) *PortableClass {
 	return &PortableClass{u: u}
 }
 func (o *PortableClass) GetAge() string {
-	return getAge(o.u)
+	return GetAge(o.u)
 }
 
 func (o *PortableClass) GetStatus() string {
@@ -26,7 +26,7 @@ func (o *PortableClass) GetDetails() string {
 
 func (o *PortableClass) GetRelated(filterByLabel func(metav1.GroupVersionKind, string, string) ([]unstructured.Unstructured, error)) ([]*unstructured.Unstructured, error) {
 	related := make([]*unstructured.Unstructured, 0)
-	obj := o.u
+	obj := o.u.Object
 
 	// Get class reference
 	u, err := getObjRef(obj, classRefPath)

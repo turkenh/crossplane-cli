@@ -2,9 +2,10 @@ package trace
 
 import (
 	"container/list"
-	"errors"
 	"fmt"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/api/errors"
 
 	"k8s.io/apimachinery/pkg/types"
 
@@ -32,11 +33,11 @@ func NewKubeGraphBuilder(client dynamic.Interface, restMapper meta.RESTMapper) *
 	}
 }
 
-func (g *KubeGraphBuilder) BuildGraph(name, namespace, kind string) (root *Node, traversed []*unstructured.Unstructured, err error) {
+func (g *KubeGraphBuilder) BuildGraph(name, namespace, kind string) (root *Node, traversed []*Node, err error) {
 	g.filterByLabel(metav1.GroupVersionKind{}, "", "")
 	queue := list.New()
 
-	traversed = make([]*unstructured.Unstructured, 0)
+	traversed = make([]*Node, 0)
 
 	u := &unstructured.Unstructured{Object: map[string]interface{}{}}
 
@@ -53,7 +54,7 @@ func (g *KubeGraphBuilder) BuildGraph(name, namespace, kind string) (root *Node,
 	}
 
 	visited := map[types.UID]bool{}
-	traversed = append(traversed, root.U)
+	traversed = append(traversed, root)
 	visited[root.U.GetUID()] = true
 	queue.PushBack(root)
 
@@ -75,14 +76,13 @@ func (g *KubeGraphBuilder) BuildGraph(name, namespace, kind string) (root *Node,
 			u := n.U
 			uid := u.GetUID()
 			if !visited[uid] {
-				traversed = append(traversed, u)
+				traversed = append(traversed, n)
 				visited[uid] = true
 				queue.PushBack(n)
 			}
 		}
 		queue.Remove(qnode)
 	}
-
 	return
 }
 
@@ -97,7 +97,9 @@ func (g *KubeGraphBuilder) fetchObj(n *Node) error {
 	}
 
 	u, err = g.client.Resource(res).Namespace(u.GetNamespace()).Get(u.GetName(), metav1.GetOptions{})
-	if err != nil {
+	if errors.IsNotFound(err) {
+		n.Status = NodeStateMissing
+	} else if err != nil {
 		return err
 	}
 	n.U = u
@@ -125,7 +127,8 @@ func (g *KubeGraphBuilder) findRelated(n *Node) error {
 		return err
 	}
 	if c == nil {
-		return errors.New(fmt.Sprintf("%s is not a known crossplane object", n.U.GroupVersionKind().String()))
+		// This is not a known crossplane object (e.g. secret) so no related obj.
+		return nil
 	}
 	objs, err := c.GetRelated(g.filterByLabel)
 	if err != nil {

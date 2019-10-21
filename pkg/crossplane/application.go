@@ -33,7 +33,7 @@ func (o *Application) GetStatus() string {
 }
 
 func (o *Application) GetAge() string {
-	return getAge(o.u)
+	return GetAge(o.u)
 }
 
 func (o *Application) GetDetails() string {
@@ -67,7 +67,7 @@ func (o *Application) GetDetails() string {
 
 func (o *Application) GetRelated(filterByLabel func(metav1.GroupVersionKind, string, string) ([]unstructured.Unstructured, error)) ([]*unstructured.Unstructured, error) {
 	related := make([]*unstructured.Unstructured, 0)
-	obj := o.u
+	obj := o.u.Object
 
 	// Get resource reference
 	u, err := getObjRef(obj, applicationClusterRefPath)
@@ -86,7 +86,7 @@ func (o *Application) GetRelated(filterByLabel func(metav1.GroupVersionKind, str
 	for _, k := range resourceKinds {
 		uArr, err := filterByLabel(metav1.GroupVersionKind{
 			Kind: k,
-		}, obj.GetNamespace(), getNestedLabelSelector(obj.Object, "spec", "resourceSelector", "matchLabels"))
+		}, o.u.GetNamespace(), getNestedLabelSelector(obj, "spec", "resourceSelector", "matchLabels"))
 		if err != nil && !meta.IsNoMatchError(err) {
 			return related, err
 		}

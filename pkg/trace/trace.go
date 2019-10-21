@@ -4,9 +4,20 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
+// KubernetesApplicationState represents the state of a Kubernetes application.
+type NodeState string
+
+// KubernetesApplication states.
+const (
+	NodeStateMissing NodeState = "Missing"
+	NodeStatePending NodeState = "Pending"
+	NodeStateReady   NodeState = "Ready"
+)
+
 type Node struct {
 	U       *unstructured.Unstructured
 	Related []*Node
+	Status  NodeState
 }
 
 type GraphBuilder interface {
@@ -14,5 +25,5 @@ type GraphBuilder interface {
 }
 
 type Printer interface {
-	Print([]*unstructured.Unstructured) error
+	Print([]*Node) error
 }

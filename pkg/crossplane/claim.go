@@ -18,7 +18,7 @@ func (o *Claim) GetStatus() string {
 }
 
 func (o *Claim) GetAge() string {
-	return getAge(o.u)
+	return GetAge(o.u)
 }
 
 func (o *Claim) GetDetails() string {
@@ -27,7 +27,7 @@ func (o *Claim) GetDetails() string {
 
 func (o *Claim) GetRelated(filterByLabel func(metav1.GroupVersionKind, string, string) ([]unstructured.Unstructured, error)) ([]*unstructured.Unstructured, error) {
 	related := make([]*unstructured.Unstructured, 0)
-	obj := o.u
+	obj := o.u.Object
 
 	// Get resource reference
 	u, err := getObjRef(obj, resourceRefPath)
@@ -46,15 +46,25 @@ func (o *Claim) GetRelated(filterByLabel func(metav1.GroupVersionKind, string, s
 	//  hence we need to manually fill them. This limitation will be removed with
 	//  https://github.com/crossplaneio/crossplane/blob/master/design/one-pager-simple-class-selection.md
 	if u.GetAPIVersion() == "" {
-		u.SetAPIVersion(obj.GetAPIVersion())
+		u.SetAPIVersion(o.u.GetAPIVersion())
 	}
 	if u.GetKind() == "" {
 		u.SetKind(o.u.GetKind() + "Class")
 	}
 	if u.GetNamespace() == "" {
-		u.SetNamespace(obj.GetNamespace())
+		u.SetNamespace(o.u.GetNamespace())
 	}
 
+	related = append(related, u)
+
+	// Get write to secret reference
+	u, err = getObjRef(obj, resourceSecretRefPath)
+	u.SetAPIVersion("v1")
+	u.SetKind("Secret")
+	u.SetNamespace(o.u.GetNamespace())
+	if err != nil {
+		return related, err
+	}
 	related = append(related, u)
 
 	return related, nil

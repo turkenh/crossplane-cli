@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -21,6 +22,7 @@ import (
 func main() {
 	var kubeconfig string
 	var namespace string
+	var outputFormat string
 	if home := homedir.HomeDir(); home != "" {
 		pflag.StringVar(&kubeconfig, "kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
 	} else {
@@ -28,6 +30,7 @@ func main() {
 	}
 
 	pflag.StringVarP(&namespace, "namespace", "n", "default", "namespace")
+	pflag.StringVarP(&outputFormat, "outputFormat", "o", "", "Output format. One of: dot|yaml|json")
 
 	pflag.Parse()
 	kind := pflag.Arg(0)
@@ -58,17 +61,27 @@ func main() {
 	rMapper := restmapper.NewShortcutExpander(mapper, discoveryClient)
 
 	g := trace.NewKubeGraphBuilder(client, rMapper)
-	_, objs, err := g.BuildGraph(resourceName, namespace, kind)
+	_, traversed, err := g.BuildGraph(resourceName, namespace, kind)
 	if err != nil {
 		failWithErr(err)
 	}
-	p := trace.NewSimplePrinter()
-	p.Print(objs)
-	if err != nil {
-		failWithErr(err)
+	if outputFormat == "" {
+		p := trace.NewSimplePrinter()
+		p.Print(traversed)
+		if err != nil {
+			failWithErr(err)
+		}
+	} else if outputFormat == "dot" {
+		gp := trace.NewGraphPrinter()
+		gp.Print(traversed)
+		if err != nil {
+			failWithErr(err)
+		}
+	} else if outputFormat == "yaml" || outputFormat == "json" {
+		failWithErr(errors.New(fmt.Sprintf("%s outputFormat format is not supported yet", outputFormat)))
+	} else {
+		failWithErr(errors.New("unknown outputFormat format, should be one of: dot|yaml|json"))
 	}
-	//fmt.Println(len(r.Related))
-
 }
 
 func failWithErr(err error) {
