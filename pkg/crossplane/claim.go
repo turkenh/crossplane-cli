@@ -42,7 +42,7 @@ func (o *Claim) GetRelated(filterByLabel func(metav1.GroupVersionKind, string, s
 	if err != nil {
 		return related, err
 	}
-	// TODO(ht): Special case for claim -> portableClass, currently apiversion, kind and ns missing
+	// TODO(hasan): Special case for claim -> portableClass, currently apiversion, kind and ns missing
 	//  hence we need to manually fill them. This limitation will be removed with
 	//  https://github.com/crossplaneio/crossplane/blob/master/design/one-pager-simple-class-selection.md
 	if u.GetAPIVersion() == "" {

@@ -34,7 +34,7 @@ func (o *NonPortableClass) GetRelated(filterByLabel func(metav1.GroupVersionKind
 		return related, err
 	}
 
-	// TODO: Could we set full resource reference for providerRef?
+	// TODO(hasan): Could we set full resource reference for providerRef?
 	if u.GetAPIVersion() == "" {
 		oApiVersion := o.u.GetAPIVersion()
 		s := strings.Split(oApiVersion, ".")

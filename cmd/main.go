@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -33,20 +32,25 @@ func main() {
 	pflag.StringVarP(&outputFormat, "outputFormat", "o", "", "Output format. One of: dot|yaml|json")
 
 	pflag.Parse()
-	kind := pflag.Arg(0)
-	resourceName := pflag.Arg(1)
+	// TODO(hasan): Consider using parsing libraries (e.g. cobra)
+	subcommand := pflag.Arg(0)
+	if subcommand != "trace" {
+		failWithMessage("currently only \"trace\" subcommand is supported")
+	}
+	kind := pflag.Arg(1)
+	resourceName := pflag.Arg(2)
 	if kind == "" || resourceName == "" {
-		failWithErr(fmt.Errorf("missing arguments: KIND NAME [-n|--namespace NAMESPACE]"))
+		failWithMessage("missing arguments: SUBCOMMAND KIND NAME [-n|--namespace NAMESPACE]")
 	}
 	fmt.Fprintf(os.Stderr, "Collecting information for %s %s in namespace %s...\n\n", kind, resourceName, namespace)
 
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
-		failWithErr(err)
+		failWithMessage(err.Error())
 	}
 	client, err := dynamic.NewForConfig(config)
 	if err != nil {
-		failWithErr(err)
+		failWithMessage(err.Error())
 	}
 
 	discoveryCacheDir := filepath.Join("./.kube", "cache", "discovery")
@@ -63,28 +67,28 @@ func main() {
 	g := trace.NewKubeGraphBuilder(client, rMapper)
 	_, traversed, err := g.BuildGraph(resourceName, namespace, kind)
 	if err != nil {
-		failWithErr(err)
+		failWithMessage(err.Error())
 	}
 	if outputFormat == "" {
 		p := trace.NewSimplePrinter()
 		p.Print(traversed)
 		if err != nil {
-			failWithErr(err)
+			failWithMessage(err.Error())
 		}
 	} else if outputFormat == "dot" {
 		gp := trace.NewGraphPrinter()
 		gp.Print(traversed)
 		if err != nil {
-			failWithErr(err)
+			failWithMessage(err.Error())
 		}
 	} else if outputFormat == "yaml" || outputFormat == "json" {
-		failWithErr(errors.New(fmt.Sprintf("%s outputFormat format is not supported yet", outputFormat)))
+		failWithMessage(fmt.Sprintf("%s outputFormat format is not supported yet", outputFormat))
 	} else {
-		failWithErr(errors.New("unknown outputFormat format, should be one of: dot|yaml|json"))
+		failWithMessage("unknown outputFormat format, should be one of: dot|yaml|json")
 	}
 }
 
-func failWithErr(err error) {
-	fmt.Fprintln(os.Stderr, err)
+func failWithMessage(msg string) {
+	fmt.Fprintln(os.Stderr, msg)
 	os.Exit(-1)
 }

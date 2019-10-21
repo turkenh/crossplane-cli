@@ -4,10 +4,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-// KubernetesApplicationState represents the state of a Kubernetes application.
 type NodeState string
 
-// KubernetesApplication states.
 const (
 	NodeStateMissing NodeState = "Missing"
 	NodeStatePending NodeState = "Pending"

@@ -26,6 +26,6 @@ func (o *Provider) GetDetails() string {
 }
 
 func (o *Provider) GetRelated(filterByLabel func(metav1.GroupVersionKind, string, string) ([]unstructured.Unstructured, error)) ([]*unstructured.Unstructured, error) {
-	// TODO(ht): credentialsSecretRef?
+	// TODO(hasan): credentialsSecretRef?
 	return nil, nil
 }
