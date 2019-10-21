@@ -1,22 +1,46 @@
 package trace
 
 import (
+	"fmt"
+	"strings"
+
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 type NodeState string
 
 const (
 	NodeStateMissing NodeState = "Missing"
-	NodeStatePending NodeState = "Pending"
-	NodeStateReady   NodeState = "Ready"
 )
 
 type Node struct {
-	U       *unstructured.Unstructured
-	Id      string
-	Related []*Node
-	State   NodeState
+	instance *unstructured.Unstructured
+	gvr      schema.GroupVersionResource
+	id       string
+	related  []*Node
+	state    NodeState
+}
+
+func NewNode(res schema.GroupVersionResource, instance *unstructured.Unstructured) *Node {
+	return &Node{
+		gvr:      res,
+		instance: instance,
+		related:  nil,
+		state:    "",
+	}
+}
+
+func (n *Node) GetId() string {
+	return GetNodeIdFor(n.gvr, n.instance)
+}
+
+func GetNodeIdFor(res schema.GroupVersionResource, i *unstructured.Unstructured) string {
+	return strings.ToLower(fmt.Sprintf("%s-%s-%s", res.String(), i.GetNamespace(), i.GetName()))
+}
+
+func (n *Node) IsFetched() bool {
+	return n.instance.GetUID() != ""
 }
 
 type GraphBuilder interface {

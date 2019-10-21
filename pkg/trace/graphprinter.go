@@ -19,10 +19,16 @@ func NewGraphPrinter() *GraphPrinter {
 func (p *GraphPrinter) Print(nodes []*Node) error {
 	g := dot.NewGraph(dot.Undirected)
 	for _, n := range nodes {
-		relateds := n.Related
+		relateds := n.related
 		for _, r := range relateds {
-			t := g.Node(getNodeLabel(r))
-			f := g.Node(getNodeLabel(n))
+			t := g.Node(r.GetId())
+			t.Label(getNodeLabel(r))
+			if r.state == NodeStateMissing {
+				t.Attr("color", "red")
+				t.Attr("style", "dashed")
+			}
+			f := g.Node(n.GetId())
+			f.Label(getNodeLabel(n))
 			g.Edge(f, t)
 		}
 	}
@@ -31,13 +37,11 @@ func (p *GraphPrinter) Print(nodes []*Node) error {
 }
 
 func getNodeLabel(n *Node) string {
-	u := n.U
+	u := n.instance
 	labelKind := u.GetKind()
-	labelName := string(u.GetUID())
-	if n.State == NodeStateMissing {
-		labelName = "<missing>"
-	} else if len(n.U.GetUID()) > 6 {
-		labelName = string(u.GetUID())[:6]
+	labelName := u.GetName()
+	if len(labelName) > 20 {
+		labelName = labelName[:16] + "..." + labelName[len(labelName)-4:]
 	}
 	return fmt.Sprintf("%s\n%s", labelKind, labelName)
 }

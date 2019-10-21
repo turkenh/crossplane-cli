@@ -4,9 +4,6 @@ import (
 	"container/list"
 	"errors"
 	"fmt"
-	"strings"
-
-	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/crossplaneio/crossplane-cli/pkg/crossplane"
 
@@ -40,34 +37,35 @@ func (g *KubeGraphBuilder) BuildGraph(name, namespace, kind string) (root *Node,
 
 	u := &unstructured.Unstructured{Object: map[string]interface{}{}}
 
-	u.SetAPIVersion("")
 	u.SetKind(kind)
 	u.SetName(name)
 	u.SetNamespace(namespace)
 
-	root = g.addNodeIfNotExist(u)
+	root, err = g.addNodeIfNotExist(u)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	err = g.fetchObj(root)
 	if err != nil {
 		return nil, nil, err
 	}
-	if root.State == NodeStateMissing {
+	if root.state == NodeStateMissing {
 		return root, nil, errors.New(
 			fmt.Sprintf("Object to trace is not found: \"%s\" \"%s\" in namespace \"%s\"", kind, name, namespace))
 	}
 
 	// TODO(hasan): figure out if visited can be enough without traversed.
-	visited := map[types.UID]bool{}
+	visited := map[string]bool{}
 	traversed = append(traversed, root)
-	// TODO(hasan): need a better identifier, UID not available if object is missing
-	visited[root.U.GetUID()] = true
+	visited[root.GetId()] = true
 	queue.PushBack(root)
 
 	for queue.Len() > 0 {
 		qnode := queue.Front()
 		node := qnode.Value.(*Node)
 		// Skip if object is missing
-		if node.State == NodeStateMissing {
+		if node.state == NodeStateMissing {
 			queue.Remove(qnode)
 			continue
 		}
@@ -76,21 +74,20 @@ func (g *KubeGraphBuilder) BuildGraph(name, namespace, kind string) (root *Node,
 			return nil, nil, err
 		}
 
-		for _, n := range node.Related {
-			if n.State == NodeStateMissing {
+		for _, n := range node.related {
+			if n.state == NodeStateMissing {
 				continue
 			}
-			if n.U.GetUID() == "" {
+			if !n.IsFetched() {
 				err := g.fetchObj(n)
 				if err != nil {
 					return nil, nil, err
 				}
 			}
-			u := n.U
-			uid := u.GetUID()
-			if !visited[uid] {
+			nid := n.GetId()
+			if !visited[nid] {
 				traversed = append(traversed, n)
-				visited[uid] = true
+				visited[nid] = true
 				queue.PushBack(n)
 			}
 		}
@@ -100,23 +97,20 @@ func (g *KubeGraphBuilder) BuildGraph(name, namespace, kind string) (root *Node,
 }
 
 func (g *KubeGraphBuilder) fetchObj(n *Node) error {
-	if n.U.GetUID() != "" {
+	if n.IsFetched() {
 		return nil
 	}
-	u := n.U
-	res, err := g.restMapper.ResourceFor(schema.GroupVersionResource{Group: u.GroupVersionKind().Group, Version: u.GroupVersionKind().Version, Resource: u.GetKind()})
-	if err != nil {
-		return err
-	}
+	gvr := n.gvr
+	u := n.instance
 
-	u, err = g.client.Resource(res).Namespace(u.GetNamespace()).Get(u.GetName(), metav1.GetOptions{})
+	u, err := g.client.Resource(gvr).Namespace(u.GetNamespace()).Get(u.GetName(), metav1.GetOptions{})
 	if kerrors.IsNotFound(err) {
-		n.State = NodeStateMissing
+		n.state = NodeStateMissing
 		return nil
 	} else if err != nil {
 		return err
 	}
-	n.U = u
+	n.instance = u
 	return nil
 }
 
@@ -134,9 +128,9 @@ func (g *KubeGraphBuilder) filterByLabel(gvk metav1.GroupVersionKind, namespace,
 }
 
 func (g *KubeGraphBuilder) findRelated(n *Node) error {
-	n.Related = make([]*Node, 0)
+	n.related = make([]*Node, 0)
 
-	c, err := crossplane.ObjectFromUnstructured(n.U)
+	c, err := crossplane.ObjectFromUnstructured(n.instance)
 	if err != nil {
 		return err
 	}
@@ -149,26 +143,27 @@ func (g *KubeGraphBuilder) findRelated(n *Node) error {
 		return err
 	}
 	for _, o := range objs {
-		r := g.addNodeIfNotExist(o)
-		n.Related = append(n.Related, r)
+		r, err := g.addNodeIfNotExist(o)
+		if err != nil {
+			return err
+		}
+		n.related = append(n.related, r)
 	}
 	return nil
 }
 
-func (g *KubeGraphBuilder) addNodeIfNotExist(u *unstructured.Unstructured) *Node {
+func (g *KubeGraphBuilder) addNodeIfNotExist(u *unstructured.Unstructured) (*Node, error) {
 	var n *Node
-	if e, ok := g.nodes[getObjId(u)]; ok {
+	gvr, err := g.restMapper.ResourceFor(schema.GroupVersionResource{Group: u.GroupVersionKind().Group, Version: u.GroupVersionKind().Version, Resource: u.GetKind()})
+	if err != nil {
+		return nil, err
+	}
+	id := GetNodeIdFor(gvr, u)
+	if e, ok := g.nodes[id]; ok {
 		n = e
 	} else {
-		n = &Node{
-			U:       u,
-			Related: nil,
-		}
-		g.nodes[getObjId(u)] = n
+		n = NewNode(gvr, u)
+		g.nodes[id] = n
 	}
-	return n
-}
-
-func getObjId(u *unstructured.Unstructured) string {
-	return strings.ToLower(fmt.Sprintf("%s-%s-%s", u.GetKind(), u.GetNamespace(), u.GetName()))
+	return n, nil
 }

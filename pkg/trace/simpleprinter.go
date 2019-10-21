@@ -51,7 +51,7 @@ func (p *SimplePrinter) printOverview(nodes []*Node) error {
 		return err
 	}
 	for _, n := range nodes {
-		o := n.U
+		o := n.instance
 		c, err := crossplane.ObjectFromUnstructured(o)
 		if err != nil {
 			return err
@@ -59,7 +59,7 @@ func (p *SimplePrinter) printOverview(nodes []*Node) error {
 		if c == nil {
 			// This is not a known crossplane object (e.g. secret) so no related obj.
 			s := "N/A"
-			if n.State == NodeStateMissing {
+			if n.state == NodeStateMissing {
 				s = "<missing>"
 			}
 			_, err = fmt.Fprintf(p.tabWriter, "%v\t%v\t%v\t%v\t%v\t\n", o.GetKind(), o.GetName(), o.GetNamespace(), s, crossplane.GetAge(o))
@@ -90,7 +90,7 @@ func (p *SimplePrinter) printDetails(nodes []*Node) error {
 
 	allDetails := ""
 	for _, n := range nodes {
-		o := n.U
+		o := n.instance
 		c, err := crossplane.ObjectFromUnstructured(o)
 		if err != nil {
 			return err
