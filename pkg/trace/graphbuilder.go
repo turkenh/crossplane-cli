@@ -34,7 +34,6 @@ func NewKubeGraphBuilder(client dynamic.Interface, restMapper meta.RESTMapper) *
 }
 
 func (g *KubeGraphBuilder) BuildGraph(name, namespace, kind string) (root *Node, traversed []*Node, err error) {
-	g.filterByLabel(metav1.GroupVersionKind{}, "", "")
 	queue := list.New()
 
 	traversed = make([]*Node, 0)

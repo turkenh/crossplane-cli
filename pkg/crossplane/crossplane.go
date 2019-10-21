@@ -7,65 +7,70 @@ import (
 )
 
 var (
-	// TODO: Kind is not enough to identify GVK, need another way. Example, "Bucket", is it Claim or Managed ?
-	// TODO: What about other resources related to networking and/or iam ?
-	kindsClaim = []string{
-		"MySQLInstance",
-		"KubernetesCluster",
-		"RedisCluster",
-		"PostgreSQLInstance",
-		"Bucket",
+	// TODO(hasan): Add other resources related to networking and/or iam
+	groupKindsClaim = []string{
+		"mysqlinstance.database.crossplane.io",
+		"kubernetescluster.compute.crossplane.io",
+		"rediscluster.cache.crossplane.io",
+		"postgresqlinstance.database.crossplane.io",
+		"bucket.storage.crossplane.io",
 	}
-	kindsManaged = []string{
-		"Redis",
-		"MysqlServer",
-		"PostgresqlServer",
-		"AKSCluster",
-		"Container",
-		"Account",
+	groupKindsManaged = []string{
+		// Azure
+		"redis.cache.azure.crossplane.io",
+		"mysqlserver.database.azure.crossplane.io",
+		"postgresqlserver.database.azure.crossplane.io",
+		"akscluster.compute.azure.crossplane.io",
+		"container.storage.azure.crossplane.io",
+		"account.storage.azure.crossplane.io",
 
-		"CloudsqlInstance",
-		"GKECluster",
-		"CloudMemorystoreInstance",
-		"Bucket",
+		// GCP
+		"cloudsqlinstance.database.gcp.crossplane.io",
+		"gkecluster.compute.gcp.crossplane.io",
+		"cloudmemorystoreinstance.cache.gcp.crossplane.io",
+		"bucket.storage.gcp.crossplane.io",
 
-		"ReplicationGroup",
-		"EKSCluster",
-		"RDSInstance",
-		"S3Bucket",
+		// AWS
+		"replicationgroup.cache.aws.crossplane.io",
+		"ekscluster.compute.aws.crossplane.io",
+		"rdsinstance.database.aws.crossplane.io",
+		"s3bucket.storage.aws.crossplane.io",
 	}
-	kindsPortableClass = []string{
-		"MySQLInstanceClass",
-		"KubernetesClusterClass",
-		"RedisClusterClass",
-		"PostgreSQLInstanceClass",
-		"BucketClass",
+	groupKindsPortableClass = []string{
+		"mysqlinstanceclass.database.crossplane.io",
+		"kubernetesclusterclass.compute.crossplane.io",
+		"redisclusterclass.cache.crossplane.io",
+		"postgresqlinstanceclass.database.crossplane.io",
+		"bucketclass.storage.crossplane.io",
 	}
-	kindsNonPortableClass = []string{
-		"RedisClass",
-		"AKSClusterClass",
-		"SQLServerClass",
+	groupKindsNonPortableClass = []string{
+		// Azure
+		"redisclass.cache.azure.crossplane.io",
+		"aksclusterclass.compute.azure.crossplane.io",
+		"sqlserverclass.database.azure.crossplane.io",
 
-		"CloudsqlInstanceClass",
-		"GKEClusterClass",
-		"CloudMemorystoreInstanceClass",
-		"BucketClass",
-		"AccountClass",
-		"ContainerClass",
+		// GCP
+		"cloudsqlinstanceclass.database.gcp.crossplane.io",
+		"gkeclusterclass.compute.gcp.crossplane.io",
+		"cloudmemorystoreinstanceclass.cache.gcp.crossplane.io",
+		"bucketclass.storage.gcp.crossplane.io",
 
-		"ReplicationGroupClass",
-		"EKSClusterClass",
-		"RDSInstanceClass",
-		"S3BucketClass",
+		// AWS
+		"replicationgroupclass.cache.aws.crossplane.io",
+		"eksclusterclass.compute.aws.crossplane.io",
+		"rdsinstanceclass.database.aws.crossplane.io",
+		"s3bucketclass.storage.aws.crossplane.io",
 	}
-	kindsProvider = []string{
-		"Provider",
+	groupKindsProvider = []string{
+		"provider.gcp.crossplane.io",
+		"provider.azure.crossplane.io",
+		"provider.aws.crossplane.io",
 	}
-	kindsApplication = []string{
-		"KubernetesApplication",
+	groupKindsApplication = []string{
+		"kubernetesapplication.workload.crossplane.io",
 	}
-	kindsApplicationResource = []string{
-		"KubernetesApplicationResource",
+	groupKindsApplicationResource = []string{
+		"kubernetesapplicationresource.workload.crossplane.io",
 	}
 )
 
@@ -77,20 +82,20 @@ type Object interface {
 }
 
 func ObjectFromUnstructured(u *unstructured.Unstructured) (Object, error) {
-	objKind := u.GetKind()
-	if isClaim(objKind) {
+	gvk := u.GroupVersionKind()
+	if isClaim(gvk) {
 		return NewClaim(u), nil
-	} else if isManaged(objKind) {
+	} else if isManaged(gvk) {
 		return NewManaged(u), nil
-	} else if isPortableClass(objKind) {
+	} else if isPortableClass(gvk) {
 		return NewPortableClass(u), nil
-	} else if isNonPortableClass(objKind) {
+	} else if isNonPortableClass(gvk) {
 		return NewNonPortableClass(u), nil
-	} else if isProvider(objKind) {
+	} else if isProvider(gvk) {
 		return NewProvider(u), nil
-	} else if isApplication(objKind) {
+	} else if isApplication(gvk) {
 		return NewApplication(u), nil
-	} else if isApplicationResource(objKind) {
+	} else if isApplicationResource(gvk) {
 		return NewApplicationResource(u), nil
 	}
 	return nil, nil

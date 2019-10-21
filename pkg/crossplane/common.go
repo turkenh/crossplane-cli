@@ -3,7 +3,10 @@ package crossplane
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
+
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/duration"
@@ -105,26 +108,30 @@ func stringInSlice(a string, list []string) bool {
 	return false
 }
 
-func isClaim(kind string) bool {
-	return stringInSlice(kind, kindsClaim)
+func isClaim(gvk schema.GroupVersionKind) bool {
+	return stringInSlice(normalizedGroupKind(gvk), groupKindsClaim)
 }
-func isManaged(kind string) bool {
-	return stringInSlice(kind, kindsManaged)
+func isManaged(gvk schema.GroupVersionKind) bool {
+	return stringInSlice(normalizedGroupKind(gvk), groupKindsManaged)
 }
-func isNonPortableClass(kind string) bool {
-	return stringInSlice(kind, kindsNonPortableClass)
+func isNonPortableClass(gvk schema.GroupVersionKind) bool {
+	return stringInSlice(normalizedGroupKind(gvk), groupKindsNonPortableClass)
 }
-func isPortableClass(kind string) bool {
-	return stringInSlice(kind, kindsPortableClass)
+func isPortableClass(gvk schema.GroupVersionKind) bool {
+	return stringInSlice(normalizedGroupKind(gvk), groupKindsPortableClass)
 }
-func isProvider(kind string) bool {
-	return stringInSlice(kind, kindsProvider)
+func isProvider(gvk schema.GroupVersionKind) bool {
+	return stringInSlice(normalizedGroupKind(gvk), groupKindsProvider)
 }
-func isApplication(kind string) bool {
-	return stringInSlice(kind, kindsApplication)
+func isApplication(gvk schema.GroupVersionKind) bool {
+	return stringInSlice(normalizedGroupKind(gvk), groupKindsApplication)
 }
-func isApplicationResource(kind string) bool {
-	return stringInSlice(kind, kindsApplicationResource)
+func isApplicationResource(gvk schema.GroupVersionKind) bool {
+	return stringInSlice(normalizedGroupKind(gvk), groupKindsApplicationResource)
+}
+
+func normalizedGroupKind(gvk schema.GroupVersionKind) string {
+	return strings.ToLower(fmt.Sprintf("%s.%s", gvk.Kind, gvk.Group))
 }
 
 func getNestedString(obj map[string]interface{}, fields ...string) string {
@@ -164,4 +171,15 @@ func getNestedInt64(obj map[string]interface{}, fields ...string) int64 {
 		return -1
 	}
 	return val
+}
+
+func getKindsFromGroupKinds(allGks ...[]string) []string {
+	allKinds := make([]string, 0)
+	for _, gks := range allGks {
+		for _, gk := range gks {
+			gkp := schema.ParseGroupKind(gk)
+			allKinds = append(allKinds, gkp.Kind)
+		}
+	}
+	return allKinds
 }

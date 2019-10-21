@@ -78,10 +78,7 @@ func (o *Application) GetRelated(filterByLabel func(metav1.GroupVersionKind, str
 	related = append(related, u)
 
 	// Get related resources with resourceSelector
-	resourceKinds := make([]string, 0, len(kindsManaged)+len(kindsClaim)+len(kindsApplicationResource))
-	resourceKinds = append(resourceKinds, kindsManaged...)
-	resourceKinds = append(resourceKinds, kindsClaim...)
-	resourceKinds = append(resourceKinds, kindsApplicationResource...)
+	resourceKinds := getKindsFromGroupKinds(groupKindsClaim, groupKindsManaged, groupKindsApplicationResource)
 
 	for _, k := range resourceKinds {
 		uArr, err := filterByLabel(metav1.GroupVersionKind{
