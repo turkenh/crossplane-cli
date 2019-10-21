@@ -56,14 +56,21 @@ func (g *KubeGraphBuilder) BuildGraph(name, namespace, kind string) (root *Node,
 			fmt.Sprintf("Object to trace is not found: \"%s\" \"%s\" in namespace \"%s\"", kind, name, namespace))
 	}
 
+	// TODO(hasan): figure out if visited can be enough without traversed.
 	visited := map[types.UID]bool{}
 	traversed = append(traversed, root)
+	// TODO(hasan): need a better identifier, UID not available if object is missing
 	visited[root.U.GetUID()] = true
 	queue.PushBack(root)
 
 	for queue.Len() > 0 {
 		qnode := queue.Front()
 		node := qnode.Value.(*Node)
+		// Skip if object is missing
+		if node.State == NodeStateMissing {
+			queue.Remove(qnode)
+			continue
+		}
 		err = g.findRelated(node)
 		if err != nil {
 			return nil, nil, err
@@ -71,7 +78,6 @@ func (g *KubeGraphBuilder) BuildGraph(name, namespace, kind string) (root *Node,
 
 		for _, n := range node.Related {
 			if n.State == NodeStateMissing {
-				//fmt.Println("Missing: ", n.U.GetKind(), u.GetName(), u.GetNamespace())
 				continue
 			}
 			if n.U.GetUID() == "" {

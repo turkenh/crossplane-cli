@@ -58,7 +58,11 @@ func (p *SimplePrinter) printOverview(nodes []*Node) error {
 		}
 		if c == nil {
 			// This is not a known crossplane object (e.g. secret) so no related obj.
-			_, err = fmt.Fprintf(p.tabWriter, "%v\t%v\t%v\t%v\t%v\t\n", o.GetKind(), o.GetName(), o.GetNamespace(), "N/A", crossplane.GetAge(o))
+			s := "N/A"
+			if n.State == NodeStateMissing {
+				s = "<missing>"
+			}
+			_, err = fmt.Fprintf(p.tabWriter, "%v\t%v\t%v\t%v\t%v\t\n", o.GetKind(), o.GetName(), o.GetNamespace(), s, crossplane.GetAge(o))
 			if err != nil {
 				return err
 			}

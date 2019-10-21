@@ -16,6 +16,7 @@ const (
 
 type Node struct {
 	U       *unstructured.Unstructured
+	Id      string
 	Related []*Node
 	State   NodeState
 }
