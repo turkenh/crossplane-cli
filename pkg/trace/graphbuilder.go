@@ -2,10 +2,9 @@ package trace
 
 import (
 	"container/list"
+	"errors"
 	"fmt"
 	"strings"
-
-	"k8s.io/apimachinery/pkg/api/errors"
 
 	"k8s.io/apimachinery/pkg/types"
 
@@ -16,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -51,6 +51,10 @@ func (g *KubeGraphBuilder) BuildGraph(name, namespace, kind string) (root *Node,
 	err = g.fetchObj(root)
 	if err != nil {
 		return nil, nil, err
+	}
+	if root.Status == NodeStateMissing {
+		return root, nil, errors.New(
+			fmt.Sprintf("Object to trace is not found: \"%s\" \"%s\" in namespace \"%s\"", kind, name, namespace))
 	}
 
 	visited := map[types.UID]bool{}
@@ -97,7 +101,7 @@ func (g *KubeGraphBuilder) fetchObj(n *Node) error {
 	}
 
 	u, err = g.client.Resource(res).Namespace(u.GetNamespace()).Get(u.GetName(), metav1.GetOptions{})
-	if errors.IsNotFound(err) {
+	if kerrors.IsNotFound(err) {
 		n.Status = NodeStateMissing
 	} else if err != nil {
 		return err
