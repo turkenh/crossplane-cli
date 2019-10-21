@@ -108,28 +108,6 @@ func stringInSlice(a string, list []string) bool {
 	return false
 }
 
-func isClaim(gvk schema.GroupVersionKind) bool {
-	return stringInSlice(normalizedGroupKind(gvk), groupKindsClaim)
-}
-func isManaged(gvk schema.GroupVersionKind) bool {
-	return stringInSlice(normalizedGroupKind(gvk), groupKindsManaged)
-}
-func isNonPortableClass(gvk schema.GroupVersionKind) bool {
-	return stringInSlice(normalizedGroupKind(gvk), groupKindsNonPortableClass)
-}
-func isPortableClass(gvk schema.GroupVersionKind) bool {
-	return stringInSlice(normalizedGroupKind(gvk), groupKindsPortableClass)
-}
-func isProvider(gvk schema.GroupVersionKind) bool {
-	return stringInSlice(normalizedGroupKind(gvk), groupKindsProvider)
-}
-func isApplication(gvk schema.GroupVersionKind) bool {
-	return stringInSlice(normalizedGroupKind(gvk), groupKindsApplication)
-}
-func isApplicationResource(gvk schema.GroupVersionKind) bool {
-	return stringInSlice(normalizedGroupKind(gvk), groupKindsApplicationResource)
-}
-
 func normalizedGroupKind(gvk schema.GroupVersionKind) string {
 	return strings.ToLower(fmt.Sprintf("%s.%s", gvk.Kind, gvk.Group))
 }

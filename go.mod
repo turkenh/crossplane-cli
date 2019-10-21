@@ -3,6 +3,7 @@ module github.com/crossplaneio/crossplane-cli
 go 1.12
 
 require (
+	github.com/emicklei/dot v0.10.1
 	github.com/fatih/color v1.7.0
 	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d // indirect
 	github.com/google/btree v1.0.0 // indirect

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+
+	"github.com/emicklei/dot"
 )
 
 type GraphPrinter struct {
@@ -15,19 +17,27 @@ func NewGraphPrinter() *GraphPrinter {
 }
 
 func (p *GraphPrinter) Print(nodes []*Node) error {
-	fmt.Fprintln(p.writer, "graph {")
-
+	g := dot.NewGraph(dot.Undirected)
 	for _, n := range nodes {
-
 		relateds := n.Related
 		for _, r := range relateds {
-			fmt.Fprintln(p.writer, fmt.Sprintf("%s -- %s;", getNodeLabel(n), getNodeLabel(r)))
+			t := g.Node(getNodeLabel(r))
+			f := g.Node(getNodeLabel(n))
+			g.Edge(f, t)
 		}
 	}
-	fmt.Fprintln(p.writer, "}")
+	fmt.Fprintln(p.writer, g.String())
 	return nil
 }
 
 func getNodeLabel(n *Node) string {
-	return fmt.Sprintf("\"%s\n%s\"", n.U.GetKind(), string(n.U.GetUID())[:8])
+	u := n.U
+	labelKind := u.GetKind()
+	labelName := string(u.GetUID())
+	if n.State == NodeStateMissing {
+		labelName = "<missing>"
+	} else if len(n.U.GetUID()) > 6 {
+		labelName = string(u.GetUID())[:6]
+	}
+	return fmt.Sprintf("\"%s\n%s\"", labelKind, labelName)
 }

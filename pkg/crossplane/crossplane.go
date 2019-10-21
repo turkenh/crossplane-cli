@@ -2,6 +2,7 @@ package crossplane
 
 import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -99,4 +100,26 @@ func ObjectFromUnstructured(u *unstructured.Unstructured) (Object, error) {
 		return NewApplicationResource(u), nil
 	}
 	return nil, nil
+}
+
+func isClaim(gvk schema.GroupVersionKind) bool {
+	return stringInSlice(normalizedGroupKind(gvk), groupKindsClaim)
+}
+func isManaged(gvk schema.GroupVersionKind) bool {
+	return stringInSlice(normalizedGroupKind(gvk), groupKindsManaged)
+}
+func isNonPortableClass(gvk schema.GroupVersionKind) bool {
+	return stringInSlice(normalizedGroupKind(gvk), groupKindsNonPortableClass)
+}
+func isPortableClass(gvk schema.GroupVersionKind) bool {
+	return stringInSlice(normalizedGroupKind(gvk), groupKindsPortableClass)
+}
+func isProvider(gvk schema.GroupVersionKind) bool {
+	return stringInSlice(normalizedGroupKind(gvk), groupKindsProvider)
+}
+func isApplication(gvk schema.GroupVersionKind) bool {
+	return stringInSlice(normalizedGroupKind(gvk), groupKindsApplication)
+}
+func isApplicationResource(gvk schema.GroupVersionKind) bool {
+	return stringInSlice(normalizedGroupKind(gvk), groupKindsApplicationResource)
 }
