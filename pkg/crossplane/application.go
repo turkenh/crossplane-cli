@@ -15,7 +15,7 @@ var (
 NAME	CLUSTER	STATUS	DESIRED	SUBMITTED
 %v	%v	%v	%v	%v	
 
-Status Conditions
+State Conditions
 TYPE	STATUS	LAST-TRANSITION-TIME	REASON	MESSAGE	
 `
 )
@@ -84,6 +84,8 @@ func (o *Application) GetRelated(filterByLabel func(metav1.GroupVersionKind, str
 		uArr, err := filterByLabel(metav1.GroupVersionKind{
 			Kind: k,
 		}, o.u.GetNamespace(), getNestedLabelSelector(obj, "spec", "resourceSelector", "matchLabels"))
+		// Ignore NoMatchError since all resources/kinds may not be available on the API,
+		// e.g. ignore if AWS stack is not installed when working GCP only.
 		if err != nil && !meta.IsNoMatchError(err) {
 			return related, err
 		}

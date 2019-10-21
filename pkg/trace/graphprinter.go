@@ -39,5 +39,5 @@ func getNodeLabel(n *Node) string {
 	} else if len(n.U.GetUID()) > 6 {
 		labelName = string(u.GetUID())[:6]
 	}
-	return fmt.Sprintf("\"%s\n%s\"", labelKind, labelName)
+	return fmt.Sprintf("%s\n%s", labelKind, labelName)
 }

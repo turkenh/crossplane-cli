@@ -51,7 +51,7 @@ func (g *KubeGraphBuilder) BuildGraph(name, namespace, kind string) (root *Node,
 	if err != nil {
 		return nil, nil, err
 	}
-	if root.Status == NodeStateMissing {
+	if root.State == NodeStateMissing {
 		return root, nil, errors.New(
 			fmt.Sprintf("Object to trace is not found: \"%s\" \"%s\" in namespace \"%s\"", kind, name, namespace))
 	}
@@ -70,6 +70,10 @@ func (g *KubeGraphBuilder) BuildGraph(name, namespace, kind string) (root *Node,
 		}
 
 		for _, n := range node.Related {
+			if n.State == NodeStateMissing {
+				//fmt.Println("Missing: ", n.U.GetKind(), u.GetName(), u.GetNamespace())
+				continue
+			}
 			if n.U.GetUID() == "" {
 				err := g.fetchObj(n)
 				if err != nil {
@@ -101,7 +105,8 @@ func (g *KubeGraphBuilder) fetchObj(n *Node) error {
 
 	u, err = g.client.Resource(res).Namespace(u.GetNamespace()).Get(u.GetName(), metav1.GetOptions{})
 	if kerrors.IsNotFound(err) {
-		n.Status = NodeStateMissing
+		n.State = NodeStateMissing
+		return nil
 	} else if err != nil {
 		return err
 	}

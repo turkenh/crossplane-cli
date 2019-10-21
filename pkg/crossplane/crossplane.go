@@ -9,31 +9,35 @@ import (
 
 var (
 	// TODO(hasan): Add other resources related to networking and/or iam
+	groupKindsClaimCluster = []string{
+		"kubernetescluster.compute.crossplane.io",
+	}
 	groupKindsClaim = []string{
 		"mysqlinstance.database.crossplane.io",
-		"kubernetescluster.compute.crossplane.io",
 		"rediscluster.cache.crossplane.io",
 		"postgresqlinstance.database.crossplane.io",
 		"bucket.storage.crossplane.io",
+	}
+	groupKindsManagedCluster = []string{
+		"akscluster.compute.azure.crossplane.io",
+		"gkecluster.compute.gcp.crossplane.io",
+		"ekscluster.compute.aws.crossplane.io",
 	}
 	groupKindsManaged = []string{
 		// Azure
 		"redis.cache.azure.crossplane.io",
 		"mysqlserver.database.azure.crossplane.io",
 		"postgresqlserver.database.azure.crossplane.io",
-		"akscluster.compute.azure.crossplane.io",
 		"container.storage.azure.crossplane.io",
 		"account.storage.azure.crossplane.io",
 
 		// GCP
 		"cloudsqlinstance.database.gcp.crossplane.io",
-		"gkecluster.compute.gcp.crossplane.io",
 		"cloudmemorystoreinstance.cache.gcp.crossplane.io",
 		"bucket.storage.gcp.crossplane.io",
 
 		// AWS
 		"replicationgroup.cache.aws.crossplane.io",
-		"ekscluster.compute.aws.crossplane.io",
 		"rdsinstance.database.aws.crossplane.io",
 		"s3bucket.storage.aws.crossplane.io",
 	}
@@ -103,10 +107,10 @@ func ObjectFromUnstructured(u *unstructured.Unstructured) (Object, error) {
 }
 
 func isClaim(gvk schema.GroupVersionKind) bool {
-	return stringInSlice(normalizedGroupKind(gvk), groupKindsClaim)
+	return stringInSlice(normalizedGroupKind(gvk), groupKindsClaim) || stringInSlice(normalizedGroupKind(gvk), groupKindsClaimCluster)
 }
 func isManaged(gvk schema.GroupVersionKind) bool {
-	return stringInSlice(normalizedGroupKind(gvk), groupKindsManaged)
+	return stringInSlice(normalizedGroupKind(gvk), groupKindsManaged) || stringInSlice(normalizedGroupKind(gvk), groupKindsManagedCluster)
 }
 func isNonPortableClass(gvk schema.GroupVersionKind) bool {
 	return stringInSlice(normalizedGroupKind(gvk), groupKindsNonPortableClass)

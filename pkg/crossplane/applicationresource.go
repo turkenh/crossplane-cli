@@ -18,10 +18,10 @@ var (
 NAME	TEMPLATE-KIND	TEMPLATE-NAME	CLUSTER	STATUS
 %v	%v	%v	%v	%v	
 
-Remote Status
+Remote State
 %v
 
-Status Conditions
+State Conditions
 TYPE	STATUS	LAST-TRANSITION-TIME	REASON	MESSAGE	
 `
 )

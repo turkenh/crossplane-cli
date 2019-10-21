@@ -17,7 +17,7 @@ const (
 type Node struct {
 	U       *unstructured.Unstructured
 	Related []*Node
-	Status  NodeState
+	State   NodeState
 }
 
 type GraphBuilder interface {

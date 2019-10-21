@@ -21,10 +21,10 @@ var (
 	resourceSecretRefPath     = []string{"spec", "writeConnectionSecretToRef"}
 	providerRefPath           = []string{"specTemplate", "providerRef"}
 
-	resourceDetailsTemplate = `%v
+	resourceDetailsTemplate = `%v: %v
 
-Status: %v
-Status Conditions
+State: %v
+State Conditions
 TYPE	STATUS	LAST-TRANSITION-TIME	REASON	MESSAGE	
 `
 )
@@ -43,7 +43,7 @@ func getResourceStatus(u *unstructured.Unstructured) string {
 }
 
 func getResourceDetails(u *unstructured.Unstructured) string {
-	d := fmt.Sprintf(resourceDetailsTemplate, u.GetKind(), getResourceStatus(u))
+	d := fmt.Sprintf(resourceDetailsTemplate, u.GetKind(), u.GetName(), getResourceStatus(u))
 	cs, f, err := unstructured.NestedSlice(u.Object, "status", "conditions")
 	if err != nil || !f {
 		// failed to get conditions
